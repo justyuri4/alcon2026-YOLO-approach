@@ -1,0 +1,12 @@
+from ultralytics import YOLO
+
+# セグメンテーション用の初期モデルを読み込み
+model = YOLO("yolo11n-seg.pt") 
+
+# 学習開始
+model.train(
+    data="data.yaml",     # 設定ファイルのパス
+    epochs=100,           # 学習回数（データ量に応じて調整）
+    imgsz=640,            # 学習時の画像サイズ
+    device=0              # GPUを使う場合は0、CPUなら'cpu'
+)
