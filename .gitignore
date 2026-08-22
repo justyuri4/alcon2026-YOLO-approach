@@ -122,8 +122,6 @@ cython_debug/
 [Ll]ogs/
 [Mm]emoryCaptures/
 
-# Asset store packages (アセットストアから買った有料アセット等は基本除外)
-/[Aa]ssets/AssetStoreTools*
 
 # Visual Studio / VS Code / JetBrains / Xcode の設定・ビルド一時ファイル
 .vs/
