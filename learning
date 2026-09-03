@@ -10,3 +10,4 @@ model.train(
     imgsz=640,            # 学習時の画像サイズ
     device=0              # GPUを使う場合は0、CPUなら'cpu'
 )
+
