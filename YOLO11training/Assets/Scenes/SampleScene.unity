@@ -383,6 +383,60 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &467723003
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 467723004}
+  - component: {fileID: 467723005}
+  m_Layer: 0
+  m_Name: PaddyFieldGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &467723004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 467723003}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -3.34414, y: 0, z: -0.30056}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1105161134}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &467723005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 467723003}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbafc84f393634c6ab9476e32a828382, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PaddyFieldGenerator
+  ricePrefab: {fileID: 7205091144697703142, guid: 5d1a786fc8e2641b7a9d93d112ecb274, type: 3}
+  paddySoilTransform: {fileID: 0}
+  rowSpacing: 0.3
+  plantSpacing: 0.15
+  minRicePerHill: 3
+  maxRicePerHill: 5
+  hillRadius: 0.01
+  targetHeight: 0.2
+  heightVariation: 0.03
+  sinkDepth: 0.01
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -432,7 +486,12 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1450570700
+--- !u!4 &1105161134 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+  m_PrefabInstance: {fileID: 3979829139809678495}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1624542155
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -440,53 +499,44 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1450570702}
-  - component: {fileID: 1450570701}
+  - component: {fileID: 1624542157}
+  - component: {fileID: 1624542156}
   m_Layer: 0
-  m_Name: PaddyFieldGenerator
+  m_Name: RandomSkyboxSetter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1450570701
+--- !u!114 &1624542156
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1450570700}
+  m_GameObject: {fileID: 1624542155}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbafc84f393634c6ab9476e32a828382, type: 3}
+  m_Script: {fileID: 11500000, guid: 7fec95575196346f08475145ea9edeb0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PaddyFieldGenerator
-  ricePrefab: {fileID: 1850793951}
-  minRicePerHill: 3
-  maxRicePerHill: 5
-  hillRadius: 0.5
-  baseScale: {x: 5, y: 5, z: 5}
-  scaleVariation: 0.02
---- !u!4 &1450570702
+  m_EditorClassIdentifier: Assembly-CSharp::RandomSkyboxSetter
+  folderPath: Skyboxes
+  shaderName: Skybox/Panoramic
+--- !u!4 &1624542157
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1450570700}
+  m_GameObject: {fileID: 1624542155}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.15727, y: 0, z: -0.25543}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1850793951 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7205091144697703142, guid: 5d1a786fc8e2641b7a9d93d112ecb274, type: 3}
-  m_PrefabInstance: {fileID: 2733958170653662319}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2694313419585383826
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -614,6 +664,18 @@ PrefabInstance:
       value: mud
       objectReference: {fileID: 0}
     - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -653,9 +715,16 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 467723004}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4667f131cd27c4334955735467d520b9, type: 3}
 --- !u!1001 &8492126411481776710
@@ -723,7 +792,7 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 3979829139809678495}
-  - {fileID: 1450570702}
   - {fileID: 2733958170653662319}
   - {fileID: 2694313419585383826}
   - {fileID: 8492126411481776710}
+  - {fileID: 1624542157}

@@ -1,172 +1,143 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-public class PaddyFieldGenerator : MonoBehaviour
+public class PaddyFieldGeneratorCombine : MonoBehaviour
 {
-    [Header("土のPrefab")]
-    public GameObject soilPrefab;
-
-    [Header("米のPrefab")]
+    [Header("イネの3Dモデル（単体）")]
     public GameObject ricePrefab;
 
-    [Header("雑草のPrefab")]
-    public GameObject weedPrefab;
+    [Header("親オブジェクト（指定しない場合は自身の親を取得）")]
+    public Transform paddySoilTransform;
 
-    [Header("米の本数（範囲）")]
-    public int minRiceCount = 90;
-    public int maxRiceCount = 110;
+    [Header("植え付け間隔設定（1ユニット = 1m）")]
+    public float rowSpacing = 0.3f; 
+    public float plantSpacing = 0.15f; 
 
-    [Header("米同士の最低距離")]
-    public float riceMinDistance = 0.12f;
+    [Header("1株（塊）あたりの設定")]
+    public int minRicePerHill = 3;   
+    public int maxRicePerHill = 5;   
+    public float hillRadius = 0.03f; 
 
-    [Header("雑草同士の最低距離")]
-    public float weedMinDistance = 0.14f;
+    [Header("実際のサイズ設定（メートル単位）")]
+    [Tooltip("苗の目標とする高さ（メートル）。例: 0.2 = 20cm")]
+    public float targetHeight = 0.2f; 
 
-    [Header("米と雑草の最低距離")]
-    public float riceToWeedMinDistance = 0.10f;
+    [Tooltip("苗ごとの高さのランダムなブレ幅（メートル）。例: 0.03 = ±3cm")]
+    public float heightVariation = 0.03f; 
 
-    [Header("雑草の本数")]
-    public int weedCount = 30;
-
-    [Header("局所ランダム設定")]
-    public Vector3 riceBaseScale = new Vector3(0.12f, 0.12f, 0.12f);
-    public float riceScaleVariation = 0.03f;
-    public Vector3 weedBaseScale = new Vector3(0.10f, 0.10f, 0.10f);
-    public float weedScaleVariation = 0.02f;
-
-    private Bounds soilBounds;
+    [Header("めり込み調整")]
+    [Tooltip("泥(mud)に埋め込む深さ(m)。正の数値で埋め込みます。例: 0.01 = 1cm埋め込む")]
+    public float sinkDepth = 0.01f; // 1cm (0.01m) 埋め込む設定
 
     void Start()
     {
-        GenerateField();
+        GenerateAndCombineField();
     }
 
-    void GenerateField()
+    void GenerateAndCombineField()
     {
-        if (soilPrefab == null)
+        if (ricePrefab == null) return;
+
+        if (paddySoilTransform == null && transform.parent != null)
         {
-            Debug.LogWarning("土のPrefabが設定されていません。");
+            paddySoilTransform = transform.parent;
+        }
+
+        if (paddySoilTransform == null) return;
+
+        MeshRenderer soilRenderer = paddySoilTransform.GetComponent<MeshRenderer>();
+        if (soilRenderer == null) return;
+
+        // Prefabから元メッシュ情報を取得
+        MeshFilter prefabMeshFilter = ricePrefab.GetComponentInChildren<MeshFilter>();
+        if (prefabMeshFilter == null || prefabMeshFilter.sharedMesh == null)
+        {
+            Debug.LogError("ricePrefab から MeshFilter または Mesh を取得できませんでした。");
             return;
         }
 
-        // 土を1つ生成
-        GameObject soil = Instantiate(soilPrefab, transform.position, Quaternion.identity, transform);
-        soilBounds = GetBounds(soil);
-
-        if (ricePrefab == null)
+        Mesh sharedMesh = prefabMeshFilter.sharedMesh;
+        
+        // メッシュのローカル座標での最底面(min.y)と全高を取得
+        float localMinY = sharedMesh.bounds.min.y;
+        float originalMeshHeight = sharedMesh.bounds.size.y;
+        
+        if (originalMeshHeight <= 0)
         {
-            Debug.LogWarning("米のPrefabが設定されていません。");
+            Debug.LogWarning("メッシュの高さが0のため、正しくスケーリングできません。");
             return;
         }
 
-        List<Vector3> ricePositions = new List<Vector3>();
-        int riceTargetCount = Random.Range(minRiceCount, maxRiceCount + 1);
+        // 泥(mud)の表面のY座標
+        float mudSurfaceY = soilRenderer.bounds.max.y;
 
-        for (int i = 0; i < riceTargetCount; i++)
+        // 生成した一時オブジェクトを格納するリスト
+        List<GameObject> tempRiceObjects = new List<GameObject>();
+
+        // 1. 苗を生成（最底面と泥の高さから配置座標を精密計算）
+        for (float x = soilRenderer.bounds.min.x + (rowSpacing / 2f); x < soilRenderer.bounds.max.x; x += rowSpacing)
         {
-            Vector3 spawnPos;
-            int tries = 0;
-            do
+            for (float z = soilRenderer.bounds.min.z + (plantSpacing / 2f); z < soilRenderer.bounds.max.z; z += plantSpacing)
             {
-                spawnPos = RandomPointInsideBounds(soilBounds);
-                tries++;
-            }
-            while (tries < 200 && IsTooCloseToAny(spawnPos, ricePositions, riceMinDistance));
+                int riceCount = Random.Range(minRicePerHill, maxRicePerHill + 1);
+                
+                for (int i = 0; i < riceCount; i++)
+                {
+                    // 実際の高さ(メートル)からスケール倍率を算出
+                    float randomHeightOffset = Random.Range(-heightVariation, heightVariation);
+                    float actualHeight = Mathf.Max(0.01f, targetHeight + randomHeightOffset);
+                    float finalScaleFactor = actualHeight / originalMeshHeight;
 
-            if (tries >= 200)
-            {
-                continue;
-            }
+                    // スケーリング後のローカル最底面位置(m)
+                    float scaledMinY = localMinY * finalScaleFactor;
 
-            GameObject rice = Instantiate(ricePrefab, spawnPos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), transform);
-            ApplyRandomScale(rice.transform, riceBaseScale, riceScaleVariation);
-            ricePositions.Add(spawnPos);
-        }
+                    // 最底面が「泥の表面 - sinkDepth」の位置に来るように配置Y座標を逆算
+                    // TransformPosition.y + scaledMinY = mudSurfaceY - sinkDepth
+                    float spawnY = mudSurfaceY - sinkDepth - scaledMinY;
 
-        List<Vector3> weedPositions = new List<Vector3>();
-        for (int i = 0; i < weedCount; i++)
-        {
-            Vector3 spawnPos;
-            int tries = 0;
-            do
-            {
-                spawnPos = RandomPointInsideBounds(soilBounds);
-                tries++;
-            }
-            while (
-                tries < 300 &&
-                (
-                    IsTooCloseToAny(spawnPos, ricePositions, riceToWeedMinDistance) ||
-                    IsTooCloseToAny(spawnPos, weedPositions, weedMinDistance)
-                )
-            );
+                    Vector2 randomCircle = Random.insideUnitCircle * hillRadius;
+                    Vector3 pos = new Vector3(x + randomCircle.x, spawnY, z + randomCircle.y);
 
-            if (tries >= 300)
-            {
-                continue;
-            }
+                    GameObject rice = Instantiate(ricePrefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                    rice.transform.localScale = new Vector3(finalScaleFactor, finalScaleFactor, finalScaleFactor);
 
-            if (weedPrefab != null)
-            {
-                GameObject weed = Instantiate(weedPrefab, spawnPos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), transform);
-                ApplyRandomScale(weed.transform, weedBaseScale, weedScaleVariation);
-                weedPositions.Add(spawnPos);
+                    tempRiceObjects.Add(rice);
+                }
             }
         }
 
-        Debug.Log($"土の範囲内に米 {ricePositions.Count} 本、雑草 {weedPositions.Count} 本を配置しました。");
-    }
+        if (tempRiceObjects.Count == 0) return;
 
-    private Bounds GetBounds(GameObject target)
-    {
-        Renderer renderer = target.GetComponent<Renderer>();
-        Collider collider = target.GetComponent<Collider>();
+        // 2. メッシュの結合（CombineMeshes）
+        MeshFilter[] meshFilters = new MeshFilter[tempRiceObjects.Count];
+        CombineInstance[] combine = new CombineInstance[tempRiceObjects.Count];
 
-        if (renderer != null)
+        Material sharedMaterial = null;
+
+        for (int i = 0; i < tempRiceObjects.Count; i++)
         {
-            return renderer.bounds;
-        }
+            meshFilters[i] = tempRiceObjects[i].GetComponentInChildren<MeshFilter>();
+            combine[i].mesh = meshFilters[i].sharedMesh;
+            combine[i].transform = transform.worldToLocalMatrix * tempRiceObjects[i].transform.localToWorldMatrix;
 
-        if (collider != null)
-        {
-            return collider.bounds;
-        }
-
-        Vector3 size = new Vector3(2f, 0.2f, 2f);
-        return new Bounds(target.transform.position, size);
-    }
-
-    private Vector3 RandomPointInsideBounds(Bounds bounds)
-    {
-        float x = Random.Range(bounds.min.x, bounds.max.x);
-        float z = Random.Range(bounds.min.z, bounds.max.z);
-        float y = bounds.min.y + 0.05f;
-        return new Vector3(x, y, z);
-    }
-
-    private bool IsTooCloseToAny(Vector3 point, List<Vector3> positions, float minDistance)
-    {
-        foreach (Vector3 pos in positions)
-        {
-            if (Vector3.Distance(point, pos) < minDistance)
+            if (sharedMaterial == null)
             {
-                return true;
+                sharedMaterial = tempRiceObjects[i].GetComponentInChildren<MeshRenderer>().sharedMaterial;
             }
         }
 
-        return false;
-    }
+        MeshFilter myMeshFilter = gameObject.AddComponent<MeshFilter>();
+        MeshRenderer myMeshRenderer = gameObject.AddComponent<MeshRenderer>();
 
-    private void ApplyRandomScale(Transform target, Vector3 baseScale, float variation)
-    {
-        float randomX = Random.Range(-variation, variation);
-        float randomY = Random.Range(-variation, variation);
-        float randomZ = Random.Range(-variation, variation);
+        myMeshFilter.mesh = new Mesh();
+        myMeshFilter.mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        myMeshFilter.mesh.CombineMeshes(combine, true, true);
+        myMeshRenderer.sharedMaterial = sharedMaterial;
 
-        target.localScale = new Vector3(
-            baseScale.x + randomX,
-            baseScale.y + randomY,
-            baseScale.z + randomZ
-        );
+        // 3. 不要になった一時GameObjectの削除
+        foreach (GameObject obj in tempRiceObjects)
+        {
+            Destroy(obj);
+        }
     }
 }

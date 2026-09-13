@@ -1,0 +1,12 @@
+path: ./dataset  # データセットのルートフォルダ
+train: images/train  # 学習用画像フォルダ (pathからの相対パス)
+val: images/val      # 検証用画像フォルダ (pathからの相対パス)
+
+# クラス数 (背景は含めず、検出対象の2クラスのみ)
+nc: 2
+
+# クラス名 (predict.py の ID 順に合わせる)
+names:
+  0: premature_rice  # 若い水稲 (RICE_CLASS_ID = 0)
+  1: old_rice  # 若い水稲 (RICE_CLASS_ID = 1)
+  2: weed  # 雑草 (WEED_CLASS_ID = 2)
