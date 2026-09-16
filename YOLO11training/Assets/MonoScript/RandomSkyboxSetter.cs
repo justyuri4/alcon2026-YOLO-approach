@@ -1,6 +1,7 @@
+using System.Collections;
 using UnityEngine;
 
-public class RandomSkyboxSetter : MonoBehaviour
+public class RandomSkyboxSetter : MonoBehaviour, IProcessStep
 {
     [Header("読み込み設定")]
     [Tooltip("Assets/ 以下のフォルダパスを指定（例: Skyboxes/FolderA）")]
@@ -10,9 +11,16 @@ public class RandomSkyboxSetter : MonoBehaviour
     [Tooltip("画像1枚（全方位パノラマ）の場合は 'Skybox/Panoramic' を選択")]
     [SerializeField] private string shaderName = "Skybox/Panoramic";
 
-    void Start()
+    /// <summary>
+    /// DatasetGeneratorManager から実行される処理ステップ
+    /// </summary>
+    public IEnumerator ExecuteStep()
     {
+        // 1. Skyboxをランダムに設定
         SetRandomSkybox();
+
+        // 2. 設定されたマテリアルやライティングの反映を保証するため1フレーム待機
+        yield return null;
     }
 
     [ContextMenu("Randomize Skybox")]
@@ -40,7 +48,7 @@ public class RandomSkyboxSetter : MonoBehaviour
         }
 
         Material skyboxMaterial = new Material(skyboxShader);
-        
+
         // シェーダーのプロパティ（_MainTex）に選択したテクスチャをセット
         if (skyboxMaterial.HasProperty("_MainTex"))
         {
