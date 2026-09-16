@@ -6,7 +6,6 @@ public class PaddyFieldGenerator : MonoBehaviour
     [Header("Base Prefabs")]
     public GameObject mudPrefab;
     public GameObject ricePrefab;
-    public GameObject[] weedPrefabs;
 
     [Header("Field Size")]
     public int fieldColumns = 12;
@@ -16,13 +15,10 @@ public class PaddyFieldGenerator : MonoBehaviour
     [Header("Plant Count Per Tile")]
     public int minRicePerTile = 1;
     public int maxRicePerTile = 4;
-    public int minWeedPerTile = 0;
-    public int maxWeedPerTile = 3;
 
     [Header("Placement")]
     public float plantPadding = 0.03f;
     public Vector2 riceScaleRange = new Vector2(0.08f, 0.12f);
-    public Vector2 weedScaleRange = new Vector2(0.07f, 0.13f);
 
     [Header("Randomization")]
     public bool useFixedSeed = false;
@@ -67,12 +63,10 @@ public class PaddyFieldGenerator : MonoBehaviour
                 Transform tileRoot = CreateTile(tilePosition, row, column);
 
                 int riceCount = Random.Range(minRicePerTile, maxRicePerTile + 1);
-                int weedCount = Random.Range(minWeedPerTile, maxWeedPerTile + 1);
 
                 List<Vector3> occupiedPositions = new List<Vector3>();
 
                 SpawnPlants(tileRoot, ricePrefab, riceCount, riceScaleRange, occupiedPositions, true);
-                SpawnWeeds(tileRoot, weedCount, weedScaleRange, occupiedPositions);
             }
         }
     }
@@ -99,35 +93,6 @@ public class PaddyFieldGenerator : MonoBehaviour
         GameObject tileObject = Instantiate(mudPrefab, tilePosition, Quaternion.identity, generatedRoot);
         tileObject.name = $"Mud_{row}_{column}";
         return tileObject.transform;
-    }
-
-    private void SpawnWeeds(Transform tileRoot, int weedCount, Vector2 scaleRange, List<Vector3> occupiedPositions)
-    {
-        if (weedPrefabs == null || weedPrefabs.Length == 0)
-        {
-            Debug.LogWarning("At least one weed prefab is required to spawn weeds.");
-            return;
-        }
-
-        int spawnedWeedCount = 0;
-        for (int i = 0; i < weedCount; i++)
-        {
-            GameObject weedPrefab = weedPrefabs[Random.Range(0, weedPrefabs.Length)];
-            if (weedPrefab == null)
-            {
-                continue;
-            }
-
-            if (SpawnSinglePlant(tileRoot, weedPrefab, scaleRange, occupiedPositions, false))
-            {
-                spawnedWeedCount++;
-            }
-        }
-
-        if (spawnedWeedCount < weedCount)
-        {
-            Debug.LogWarning($"Only {spawnedWeedCount} of {weedCount} requested weeds were spawned.");
-        }
     }
 
     private void SpawnPlants(Transform tileRoot, GameObject plantPrefab, int count, Vector2 scaleRange, List<Vector3> occupiedPositions, bool alignUpright)
