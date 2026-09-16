@@ -16,16 +16,16 @@ public class RandomCameraController : MonoBehaviour, IProcessStep, IResettableSt
     [Header("カメラランダム化設定")]
     public bool useRandomCamera = true;
 
-    [Header("カメラ位置設定（親からの高さ）")]
-    [Tooltip("親オブジェクトの位置からどれだけ上に配置するか（1.0 = 1ユニット上）")]
+    [Header("カメラ高さ設定（ワールド座標系）")]
+    [Tooltip("親オブジェクトの端からワールド単位で何ユニット上にカメラを置くか")]
     public float cameraHeightOffset = 1.0f;
 
-    [Header("カメラの角度指定範囲 (useRandomCamera = true の場合)")]
-    [Tooltip("水平(0度)から上下の振り幅（例: -30度 〜 +30度）")]
-    public Vector2 pitchRange = new Vector2(-30f, 30f);
+    [Header("カメラ注視点高さ設定（ワールド座標系）")]
+    [Tooltip("親オブジェクトの中心からワールド単位で指定する注視点の高さ最小値")]
+    public float targetMinHeight = 0.5f;
 
-    [Tooltip("左右の振り幅（例: 0度 〜 360度 全方位）")]
-    public Vector2 yawRange = new Vector2(0f, 360f);
+    [Tooltip("親オブジェクトの中心からワールド単位で指定する注視点の高さ最大値")]
+    public float targetMaxHeight = 1.2f;
 
     private int currentIndex = 0;
 
@@ -97,30 +97,84 @@ public class RandomCameraController : MonoBehaviour, IProcessStep, IResettableSt
                 ? transform.parent
                 : transform;
 
-        Vector3 origin = baseTransform.position;
-
-        captureCamera.transform.position =
-            origin + Vector3.up * cameraHeightOffset;
+        // 1. 親オブジェクトのワールド空間におけるバウンディングボックスを取得
+        // Renderer / Collider の bounds はスケールが適用されたワールド座標系のサイズを返すため、
+        // 親の Scale の影響を受けずに正確な絶対ユニットを扱えます。
+        Bounds bounds;
+        if (baseTransform.TryGetComponent<Renderer>(out var renderer))
+        {
+            bounds = renderer.bounds;
+        }
+        else if (baseTransform.TryGetComponent<Collider>(out var col))
+        {
+            bounds = col.bounds;
+        }
+        else
+        {
+            // Renderer も Collider もない場合は Transform のワールドスケールから推定
+            Vector3 worldScale = baseTransform.lossyScale;
+            bounds = new Bounds(baseTransform.position, worldScale);
+        }
 
         if (useRandomCamera)
         {
-            float randomPitch = Random.Range(
-                pitchRange.x,
-                pitchRange.y
-            );
+            // 2. XZ平面の「端（周縁）」上の点をワールド座標でランダム選出
+            Vector3 edgePositionOnXZ = GetRandomEdgePositionOnXZ(bounds);
 
-            float randomYaw = Random.Range(
-                yawRange.x,
-                yawRange.y
+            // 3. カメラの位置を設定 (選んだ端の座標のY軸方向に +cameraHeightOffset ユニット上)
+            Vector3 cameraPosition = new Vector3(
+                edgePositionOnXZ.x,
+                bounds.center.y + cameraHeightOffset,
+                edgePositionOnXZ.z
             );
+            captureCamera.transform.position = cameraPosition;
 
-            captureCamera.transform.rotation =
-                Quaternion.Euler(
-                    randomPitch,
-                    randomYaw,
-                    0f
-                );
+            // 4. 注視点（Target）をワールド単位で設定 (親の中心からY軸方向に targetMinHeight ~ targetMaxHeight ユニット上)
+            float randomTargetHeight = Random.Range(targetMinHeight, targetMaxHeight);
+            Vector3 targetPosition = bounds.center + Vector3.up * randomTargetHeight;
+
+            // 5. カメラを注視点に向けさせる
+            captureCamera.transform.LookAt(targetPosition);
         }
+        else
+        {
+            // ランダム化オフの場合の標準位置（親の中心上空）
+            captureCamera.transform.position =
+                bounds.center + Vector3.up * cameraHeightOffset;
+            captureCamera.transform.LookAt(bounds.center);
+        }
+    }
+
+    /// <summary>
+    /// Bounds（ワールド空間）のXZ平面の4つの端（外周の辺）からランダムな1点を取得
+    /// </summary>
+    private Vector3 GetRandomEdgePositionOnXZ(Bounds bounds)
+    {
+        int edgeIndex = Random.Range(0, 4);
+        float x = bounds.center.x;
+        float z = bounds.center.z;
+
+        switch (edgeIndex)
+        {
+            case 0: // +X 辺
+                x = bounds.max.x;
+                z = Random.Range(bounds.min.z, bounds.max.z);
+                break;
+            case 1: // -X 辺
+                x = bounds.min.x;
+                z = Random.Range(bounds.min.z, bounds.max.z);
+                break;
+            case 2: // +Z 辺
+                x = Random.Range(bounds.min.x, bounds.max.x);
+                z = bounds.max.z;
+                break;
+            case 3: // -Z 辺
+                x = Random.Range(bounds.min.x, bounds.max.x);
+                z = bounds.min.z;
+                break;
+        }
+
+        return new Vector3(x, bounds.center.y, z);
     }
 
     private void CaptureScreenshot(string savePath)

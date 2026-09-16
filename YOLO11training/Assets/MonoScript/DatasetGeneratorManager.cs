@@ -7,8 +7,9 @@ public class DatasetGeneratorManager : MonoBehaviour
     [Header("生成ループ設定")]
     public int numberOfImages = 100;
 
-    [Header("実行ステップ一覧（インスペクターで順序通りに設定）")]
-    public List<MonoBehaviour> processSteps = new List<MonoBehaviour>();
+    [Header("自動取得設定")]
+    [Tooltip("チェックを入れると、このオブジェクトの子要素からステップを自動検索します。チェックを外すとScene全体から検索します。")]
+    public bool searchOnlyInChildren = false;
 
     void Start()
     {
@@ -17,27 +18,84 @@ public class DatasetGeneratorManager : MonoBehaviour
 
     IEnumerator RunSequence()
     {
-        // クラス名に依存せず、リセットインターフェースを持つものだけを一括リセット
-        foreach (var stepObj in processSteps)
+        // 1. IProcessStep を自動検索
+        List<IProcessStep> steps = new List<IProcessStep>();
+
+        if (searchOnlyInChildren)
         {
-            if (stepObj is IResettableStep resettable)
+            var components = GetComponentsInChildren<MonoBehaviour>();
+            foreach (var comp in components)
+            {
+                if (comp is IProcessStep step)
+                {
+                    steps.Add(step);
+                }
+            }
+        }
+        else
+        {
+            var components = FindObjectsOfType<MonoBehaviour>();
+            foreach (var comp in components)
+            {
+                if (comp is IProcessStep step)
+                {
+                    steps.Add(step);
+                }
+            }
+        }
+
+        if (steps.Count == 0)
+        {
+            Debug.LogError("[GeneratorManager] IProcessStep を実装した有効なコンポーネントが見つかりませんでした！");
+            yield break;
+        }
+
+        // 2. RandomCameraController を検索
+        RandomCameraController cameraController = null;
+        foreach (var step in steps)
+        {
+            if (step is RandomCameraController camera)
+            {
+                cameraController = camera;
+                break;
+            }
+        }
+
+        if (cameraController == null)
+        {
+            Debug.LogWarning("[GeneratorManager] RandomCameraController が見つかりませんでした。");
+        }
+
+        // 3. リセット処理（一括）
+        foreach (var step in steps)
+        {
+            if (step is IResettableStep resettable)
             {
                 resettable.ResetIndex();
             }
         }
 
+        // 4. 指定回数分ループ生成
         for (int i = 0; i < numberOfImages; i++)
         {
-            foreach (var stepObj in processSteps)
+            // カメラ以外の IProcessStep を実行
+            foreach (var step in steps)
             {
-                if (stepObj is IProcessStep step)
+                if (step is RandomCameraController)
                 {
-                    yield return StartCoroutine(step.ExecuteStep());
+                    continue;
                 }
-                else if (stepObj != null)
-                {
-                    Debug.LogWarning($"{stepObj.name} は IProcessStep を実装していません。", stepObj);
-                }
+
+                yield return StartCoroutine(step.ExecuteStep());
+            }
+
+            // Skyboxやオブジェクトの変更を反映させるため1フレーム待機
+            yield return null;
+
+            // 最後にカメラ（RandomCameraController）を実行
+            if (cameraController != null)
+            {
+                yield return StartCoroutine(cameraController.ExecuteStep());
             }
         }
 

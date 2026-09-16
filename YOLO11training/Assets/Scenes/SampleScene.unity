@@ -165,7 +165,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PaddyFieldGeneratorCombine
   ricePrefab: {fileID: 7205091144697703142, guid: 5d1a786fc8e2641b7a9d93d112ecb274, type: 3}
   paddySoilTransform: {fileID: 0}
-  rowSpacing: 0.6
+  rowSpacing: 0.5
   plantSpacing: 0.3
   minRicePerHill: 3
   maxRicePerHill: 5
@@ -537,8 +537,8 @@ MonoBehaviour:
   imageHeight: 480
   useRandomCamera: 1
   cameraHeightOffset: 1
-  pitchRange: {x: -30, y: -20}
-  yawRange: {x: 0, y: 360}
+  targetMinHeight: 0.5
+  targetMaxHeight: 1.2
 --- !u!4 &1105161134 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
@@ -590,7 +590,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1885107525
+--- !u!1 &2001514896
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -598,38 +598,39 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1885107527}
-  - component: {fileID: 1885107526}
+  - component: {fileID: 2001514898}
+  - component: {fileID: 2001514897}
   m_Layer: 0
-  m_Name: DatasetDebugManager
+  m_Name: DatasetGeneratorManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1885107526
+--- !u!114 &2001514897
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885107525}
+  m_GameObject: {fileID: 2001514896}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b39d233ef8771ee4da2dcd425f19c8fb, type: 3}
+  m_Script: {fileID: 11500000, guid: 42a210cfd9a263846abbf3221192955a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DatasetDebugManager
+  m_EditorClassIdentifier: Assembly-CSharp::DatasetGeneratorManager
+  numberOfImages: 5
   searchOnlyInChildren: 0
---- !u!4 &1885107527
+--- !u!4 &2001514898
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1885107525}
+  m_GameObject: {fileID: 2001514896}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.99974, y: 0, z: 1.76992}
+  m_LocalPosition: {x: 0.99431, y: 0, z: 1.64767}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -723,4 +724,4 @@ SceneRoots:
   - {fileID: 3979829139809678495}
   - {fileID: 1624542157}
   - {fileID: 841968101}
-  - {fileID: 1885107527}
+  - {fileID: 2001514898}
