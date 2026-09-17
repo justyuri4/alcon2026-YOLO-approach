@@ -120,6 +120,15 @@ cython_debug/
 /[Bb]uild/
 /[Bb]uilds/
 
+# Unityが自動生成するフォルダ
+/[Yy]OLO11training/[Ll]ibrary/
+/[Yy]OLO11training/[Tt]emp/
+/[Yy]OLO11training/[Oo]bj/
+/[Yy]OLO11training/[Bb]uild/
+/[Yy]OLO11training/[Bb]uilds/
+/[Yy]OLO11training/[Ll]ogs/
+/[Yy]OLO11training/[Uu]ser[Ss]ettings/
+
 
 
 # Visual Studio / VS Code / JetBrains / Xcode の設定・ビルド一時ファイル
