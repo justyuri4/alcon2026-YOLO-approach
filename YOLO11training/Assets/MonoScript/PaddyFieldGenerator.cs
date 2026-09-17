@@ -2,206 +2,163 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
+public class PaddyFieldGenerator : MonoBehaviour
 {
-    [Header("イネの3Dモデル（単体）")]
+    [Header("Base Prefabs")]
+    public GameObject mudPrefab;
     public GameObject ricePrefab;
 
-    [Header("親オブジェクト（指定しない場合は自身の親を取得）")]
-    public Transform paddySoilTransform;
+    [Header("Field Size")]
+    public int fieldColumns = 12;
+    public int fieldRows = 12;
+    public float tileSize = 0.25f;
 
-    [Header("植え付け間隔設定（メートル単位：1.0 = 1m）")]
-    public float rowSpacing = 0.3f;      // 条間（例: 30cm）
-    public float plantSpacing = 0.15f;   // 株間（例: 15cm）
+    [Header("Plant Count Per Tile")]
+    public int minRicePerTile = 1;
+    public int maxRicePerTile = 4;
 
-    [Header("1株（塊）あたりの設定")]
-    public int minRicePerHill = 3;
-    public int maxRicePerHill = 5;
-    public float hillRadius = 0.03f;     // 株内の散らばり半径（メートル単位）
+    [Header("Placement")]
+    public float plantPadding = 0.03f;
+    public Vector2 riceScaleRange = new Vector2(0.08f, 0.12f);
 
-    [Header("イネの高さ範囲設定（メートル単位：1.0 = 1m）")]
-    public float minPlantHeight = 0.75f; // 75cm
-    public float maxPlantHeight = 0.90f; // 90cm
+    [Header("Randomization")]
+    public bool useFixedSeed = false;
+    public int seed = 0;
 
-    [Header("めり込み調整（メートル単位）")]
-    public float sinkDepth = 0.01f;      // 1cmめり込ませる
+    private Transform generatedRoot;
 
-    private const int MAX_VERTICES_PER_MESH = 60000;
-    private List<GameObject> generatedChunks = new List<GameObject>();
-    private List<Mesh> generatedMeshes = new List<Mesh>();
-
-    public IEnumerator ExecuteStep()
+    private void Start()
     {
         GenerateField();
-        yield return null;
     }
 
+    [ContextMenu("Generate Field")]
     public void GenerateField()
     {
-        ClearField();
+        ClearGeneratedField();
 
-        if (ricePrefab == null)
+        if (mudPrefab == null || ricePrefab == null)
         {
-            Debug.LogError("[PaddyFieldGenerator] ricePrefab が設定されていません！", this);
-            return;
-        }
-        if (rowSpacing <= 0.001f || plantSpacing <= 0.001f)
-        {
-            Debug.LogError("[PaddyFieldGenerator] rowSpacing または plantSpacing が小さすぎます！", this);
+            Debug.LogWarning("Mud prefab and rice prefab are required.");
             return;
         }
 
-        if (paddySoilTransform == null && transform.parent != null)
+        if (useFixedSeed)
         {
-            paddySoilTransform = transform.parent;
-        }
-        if (paddySoilTransform == null) paddySoilTransform = transform;
-
-        MeshRenderer soilRenderer = paddySoilTransform.GetComponentInChildren<MeshRenderer>();
-        MeshFilter prefabMeshFilter = ricePrefab.GetComponentInChildren<MeshFilter>();
-        MeshRenderer prefabRenderer = ricePrefab.GetComponentInChildren<MeshRenderer>();
-
-        if (soilRenderer == null)
-        {
-            Debug.LogError($"[PaddyFieldGenerator] {paddySoilTransform.name} またはその子に MeshRenderer が見つかりません！", this);
-            return;
-        }
-        if (prefabMeshFilter == null || prefabMeshFilter.sharedMesh == null)
-        {
-            Debug.LogError("[PaddyFieldGenerator] ricePrefab に MeshFilter または Mesh が設定されていません！", this);
-            return;
+            Random.InitState(seed);
         }
 
-        Material sharedMaterial = prefabRenderer != null ? prefabRenderer.sharedMaterial : null;
-        Mesh sourceMesh = prefabMeshFilter.sharedMesh;
+        generatedRoot = new GameObject("GeneratedPaddyField").transform;
+        generatedRoot.SetParent(transform, false);
+        generatedRoot.localPosition = Vector3.zero;
+        generatedRoot.localRotation = Quaternion.identity;
+        generatedRoot.localScale = Vector3.one;
 
-        float localMeshHeight = sourceMesh.bounds.size.y;
-        float localMinY = sourceMesh.bounds.min.y;
+        Vector3 fieldOrigin = transform.position;
 
-        if (localMeshHeight <= 0.0001f)
+        for (int row = 0; row < fieldRows; row++)
         {
-            Debug.LogError("[PaddyFieldGenerator] ricePrefab のメッシュ高さ(bounds.size.y)が 0 です！", this);
-            return;
-        }
-
-        Bounds worldSoilBounds = soilRenderer.bounds;
-        float mudSurfaceY = worldSoilBounds.max.y;
-
-        Vector3[] sourceVertices = sourceMesh.vertices;
-        Vector3[] sourceNormals = sourceMesh.normals;
-        Vector2[] sourceUVs = sourceMesh.uv;
-        int[] sourceTriangles = sourceMesh.triangles;
-
-        List<Vector3> verts = new List<Vector3>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
-        List<int> tris = new List<int>();
-
-        for (float x = worldSoilBounds.min.x + (rowSpacing / 2f); x < worldSoilBounds.max.x; x += rowSpacing)
-        {
-            for (float z = worldSoilBounds.min.z + (plantSpacing / 2f); z < worldSoilBounds.max.z; z += plantSpacing)
+            for (int column = 0; column < fieldColumns; column++)
             {
-                int riceCount = Random.Range(minRicePerHill, maxRicePerHill + 1);
+                Vector3 tilePosition = fieldOrigin + new Vector3(column * tileSize, 0f, row * tileSize);
+                Transform tileRoot = CreateTile(tilePosition, row, column);
 
-                for (int i = 0; i < riceCount; i++)
+                int riceCount = Random.Range(minRicePerTile, maxRicePerTile + 1);
+
+                List<Vector3> occupiedPositions = new List<Vector3>();
+
+                SpawnPlants(tileRoot, ricePrefab, riceCount, riceScaleRange, occupiedPositions, true);
+            }
+        }
+    }
+
+    private void ClearGeneratedField()
+    {
+        if (generatedRoot != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(generatedRoot.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(generatedRoot.gameObject);
+            }
+
+            generatedRoot = null;
+        }
+    }
+
+    private Transform CreateTile(Vector3 tilePosition, int row, int column)
+    {
+        GameObject tileObject = Instantiate(mudPrefab, tilePosition, Quaternion.identity, generatedRoot);
+        tileObject.name = $"Mud_{row}_{column}";
+        return tileObject.transform;
+    }
+
+    private void SpawnPlants(Transform tileRoot, GameObject plantPrefab, int count, Vector2 scaleRange, List<Vector3> occupiedPositions, bool alignUpright)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            SpawnSinglePlant(tileRoot, plantPrefab, scaleRange, occupiedPositions, alignUpright);
+        }
+    }
+
+    private bool SpawnSinglePlant(Transform tileRoot, GameObject plantPrefab, Vector2 scaleRange, List<Vector3> occupiedPositions, bool alignUpright)
+    {
+        if (plantPrefab == null)
+        {
+            return false;
+        }
+
+        Vector3 localPosition;
+        if (!TryFindFreePosition(occupiedPositions, out localPosition))
+        {
+            return false;
+        }
+
+        Vector3 worldPosition = tileRoot.position + localPosition;
+        GameObject plantInstance = Instantiate(plantPrefab, worldPosition, Quaternion.identity, tileRoot);
+
+        float randomYaw = Random.Range(0f, 360f);
+        plantInstance.transform.rotation = Quaternion.Euler(0f, randomYaw, 0f);
+
+        float randomScale = Random.Range(scaleRange.x, scaleRange.y);
+        plantInstance.transform.localScale = Vector3.one * randomScale;
+
+        occupiedPositions.Add(localPosition);
+        return true;
+    }
+
+    private bool TryFindFreePosition(List<Vector3> occupiedPositions, out Vector3 position)
+    {
+        const int maxAttempts = 24;
+        float halfTile = tileSize * 0.5f;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            float x = Random.Range(-halfTile + plantPadding, halfTile - plantPadding);
+            float z = Random.Range(-halfTile + plantPadding, halfTile - plantPadding);
+            Vector3 candidate = new Vector3(x, 0f, z);
+
+            bool isTooClose = false;
+            for (int i = 0; i < occupiedPositions.Count; i++)
+            {
+                if (Vector3.Distance(candidate, occupiedPositions[i]) < plantPadding)
                 {
-                    if (verts.Count + sourceVertices.Length > MAX_VERTICES_PER_MESH)
-                    {
-                        CreateChunk(verts, normals, uvs, tris, sharedMaterial);
-                        verts.Clear(); normals.Clear(); uvs.Clear(); tris.Clear();
-                    }
-
-                    float targetPlantHeight = Random.Range(minPlantHeight, maxPlantHeight);
-                    float scaleRatio = targetPlantHeight / localMeshHeight;
-                    Vector3 worldScale = Vector3.one * scaleRatio;
-                    float scaledMinY = localMinY * scaleRatio;
-
-                    Vector2 randomCircle = Random.insideUnitCircle * hillRadius;
-                    Vector3 worldPos = new Vector3(
-                        x + randomCircle.x,
-                        mudSurfaceY - sinkDepth - scaledMinY,
-                        z + randomCircle.y
-                    );
-
-                    Quaternion worldRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-
-                    Matrix4x4 worldTRS = Matrix4x4.TRS(worldPos, worldRot, worldScale);
-                    Matrix4x4 localTRS = paddySoilTransform.worldToLocalMatrix * worldTRS;
-
-                    int vertexOffset = verts.Count;
-                    for (int v = 0; v < sourceVertices.Length; v++)
-                    {
-                        verts.Add(localTRS.MultiplyPoint3x4(sourceVertices[v]));
-                        if (sourceNormals.Length > v)
-                        {
-                            normals.Add(localTRS.MultiplyVector(sourceNormals[v]).normalized);
-                        }
-                    }
-
-                    if (sourceUVs.Length > 0) uvs.AddRange(sourceUVs);
-
-                    for (int t = 0; t < sourceTriangles.Length; t++)
-                    {
-                        tris.Add(sourceTriangles[t] + vertexOffset);
-                    }
+                    isTooClose = true;
+                    break;
                 }
+            }
+
+            if (!isTooClose)
+            {
+                position = candidate;
+                return true;
             }
         }
 
-        if (verts.Count > 0)
-        {
-            CreateChunk(verts, normals, uvs, tris, sharedMaterial);
-        }
-
-        Debug.Log($"[PaddyFieldGenerator] イネの生成が完了しました。（Chunk数: {generatedChunks.Count}）");
-    }
-
-    public void ClearField()
-    {
-        foreach (GameObject chunk in generatedChunks)
-        {
-            if (chunk != null) DestroyImmediate(chunk);
-        }
-        foreach (Mesh mesh in generatedMeshes)
-        {
-            if (mesh != null) DestroyImmediate(mesh);
-        }
-
-        generatedChunks.Clear();
-        generatedMeshes.Clear();
-
-        System.GC.Collect();
-        Resources.UnloadUnusedAssets();
-    }
-
-    private void CreateChunk(List<Vector3> verts, List<Vector3> normals, List<Vector2> uvs, List<int> tris, Material mat)
-    {
-        Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        mesh.SetVertices(verts);
-        mesh.SetNormals(normals);
-        mesh.SetUVs(0, uvs);
-        mesh.SetTriangles(tris, 0);
-        mesh.RecalculateBounds();
-        generatedMeshes.Add(mesh);
-
-        GameObject chunk = new GameObject("PaddyChunk");
-        chunk.transform.SetParent(paddySoilTransform, false);
-
-        chunk.transform.localPosition = Vector3.zero;
-        chunk.transform.localRotation = Quaternion.identity;
-        chunk.transform.localScale = Vector3.one;
-
-        MeshFilter mf = chunk.AddComponent<MeshFilter>();
-        MeshRenderer mr = chunk.AddComponent<MeshRenderer>();
-        mf.sharedMesh = mesh;
-        mr.sharedMaterial = mat;
-
-        generatedChunks.Add(chunk);
-    }
-
-    private void OnDestroy()
-    {
-        ClearField();
+        position = Vector3.zero;
+        return false;
     }
 }
