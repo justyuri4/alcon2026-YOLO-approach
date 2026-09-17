@@ -26,15 +26,10 @@ public class WeedPlacementStep : MonoBehaviour
 
     private Transform generatedRoot;
 
-    private void Start()
-    {
-        StartCoroutine(ExecuteStep());
-    }
-
     public IEnumerator ExecuteStep()
     {
-        yield return null;
         PlaceWeeds();
+        yield return null;
     }
 
     [ContextMenu("Place Weeds")]
