@@ -114,13 +114,12 @@ cython_debug/
 # ==========================================
 
 # 自動生成・キャッシュ系（容量が非常に大きくなるため絶対コミットしない）
-[Ll]ibrary/
-[Tt]emp/
-[Oo]bj/
-[Bb]uild/
-[Bb]uilds/
-[Ll]ogs/
-[Mm]emoryCaptures/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+
 
 
 # Visual Studio / VS Code / JetBrains / Xcode の設定・ビルド一時ファイル
