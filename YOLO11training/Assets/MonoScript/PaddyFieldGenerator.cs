@@ -19,6 +19,10 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
     public int maxRicePerHill = 5;
     public float hillRadius = 0.03f;     // 株内の散らばり半径（メートル単位）
 
+    [Header("株（束）ごとのランダム倍率")]
+    [Range(0.1f, 2.0f)] public float minHillScale = 0.9f; 
+    [Range(0.1f, 2.0f)] public float maxHillScale = 1.1f; 
+
     [Header("イネの高さ範囲設定（メートル単位：1.0 = 1m）")]
     public float minPlantHeight = 0.75f; // 75cm
     public float maxPlantHeight = 0.90f; // 90cm
@@ -32,14 +36,20 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 
     public IEnumerator ExecuteStep()
     {
+        // 1. 既存のメッシュ・オブジェクトを破棄
+        ClearField();
+
+        // 2. メモリリーク対策: 未使用アセットの非同期解放完了を待機
+        yield return Resources.UnloadUnusedAssets();
+        System.GC.Collect();
+
+        // 3. 領域解放完了後にフィールドを再生成
         GenerateField();
         yield return null;
     }
 
     public void GenerateField()
     {
-        ClearField();
-
         if (ricePrefab == null)
         {
             Debug.LogError("[PaddyFieldGenerator] ricePrefab が設定されていません！", this);
@@ -101,6 +111,12 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
         {
             for (float z = worldSoilBounds.min.z + (plantSpacing / 2f); z < worldSoilBounds.max.z; z += plantSpacing)
             {
+                // --- 【追加】株（束）ごとのランダム化パラメータ ---
+                float hillScale = Random.Range(minHillScale, maxHillScale); // 株（束）全体のスケール(80%~120%)
+                float hillYaw = Random.Range(0f, 360f);                    // 株（束）全体のYaw回転
+                Quaternion hillRotation = Quaternion.Euler(0f, hillYaw, 0f);
+                Vector3 hillCenterPos = new Vector3(x, mudSurfaceY - sinkDepth, z);
+
                 int riceCount = Random.Range(minRicePerHill, maxRicePerHill + 1);
 
                 for (int i = 0; i < riceCount; i++)
@@ -111,21 +127,27 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
                         verts.Clear(); normals.Clear(); uvs.Clear(); tris.Clear();
                     }
 
+                    // イネ個別の高さ・位置計算
                     float targetPlantHeight = Random.Range(minPlantHeight, maxPlantHeight);
-                    float scaleRatio = targetPlantHeight / localMeshHeight;
-                    Vector3 worldScale = Vector3.one * scaleRatio;
-                    float scaledMinY = localMinY * scaleRatio;
+                    float baseScaleRatio = targetPlantHeight / localMeshHeight;
+                    
+                    // 株全体のスケール(hillScale)を乗算
+                    float finalScaleRatio = baseScaleRatio * hillScale;
+                    Vector3 worldScale = Vector3.one * finalScaleRatio;
+                    float scaledMinY = localMinY * finalScaleRatio;
 
-                    Vector2 randomCircle = Random.insideUnitCircle * hillRadius;
-                    Vector3 worldPos = new Vector3(
-                        x + randomCircle.x,
-                        mudSurfaceY - sinkDepth - scaledMinY,
-                        z + randomCircle.y
-                    );
+                    // 株の中心からのオフセット計算（株全体のYaw回転を反映）
+                    Vector2 randomCircle = Random.insideUnitCircle * (hillRadius * hillScale);
+                    Vector3 localOffset = new Vector3(randomCircle.x, -scaledMinY, randomCircle.y);
+                    Vector3 rotatedOffset = hillRotation * localOffset;
 
-                    Quaternion worldRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                    Vector3 worldPos = hillCenterPos + rotatedOffset;
 
-                    Matrix4x4 worldTRS = Matrix4x4.TRS(worldPos, worldRot, worldScale);
+                    // イネ個別のランダム回転 × 株全体のYaw回転
+                    Quaternion individualRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                    Quaternion finalRotation = hillRotation * individualRot;
+
+                    Matrix4x4 worldTRS = Matrix4x4.TRS(worldPos, finalRotation, worldScale);
                     Matrix4x4 localTRS = paddySoilTransform.worldToLocalMatrix * worldTRS;
 
                     int vertexOffset = verts.Count;
@@ -169,9 +191,6 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 
         generatedChunks.Clear();
         generatedMeshes.Clear();
-
-        System.GC.Collect();
-        Resources.UnloadUnusedAssets();
     }
 
     private void CreateChunk(List<Vector3> verts, List<Vector3> normals, List<Vector2> uvs, List<int> tris, Material mat)
@@ -204,4 +223,8 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
     {
         ClearField();
     }
+}
+
+internal interface IProcessStep
+{
 }
