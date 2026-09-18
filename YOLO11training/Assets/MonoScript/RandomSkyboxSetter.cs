@@ -1,66 +1,74 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition; // HDRP用ネームスペース
 
 public class RandomSkyboxSetter : MonoBehaviour, IProcessStep
 {
-    [Header("読み込み設定")]
-    [Tooltip("Assets/ 以下のフォルダパスを指定（例: Skyboxes/FolderA）")]
-    [SerializeField] private string folderPath = "Skyboxes";
+    [Header("HDRP Volume 設定")]
+    [Tooltip("HDRP の HDRI Sky オーバーライドが含まれている Global Volume を指定")]
+    [SerializeField] private Volume globalVolume;
 
-    [Header("Skyboxシェーダー設定")]
-    [Tooltip("画像1枚（全方位パノラマ）の場合は 'Skybox/Panoramic' を選択")]
-    [SerializeField] private string shaderName = "Skybox/Panoramic";
+    [Header("読み込み設定")]
+    [Tooltip("Assets/Resources/ 以下のフォルダパスを指定（例: Skyboxes）")]
+    [SerializeField] private string folderPath = "Skyboxes";
 
     /// <summary>
     /// DatasetGeneratorManager から実行される処理ステップ
     /// </summary>
     public IEnumerator ExecuteStep()
     {
-        // 1. Skyboxをランダムに設定
+        UnityEngine.Debug.Log($"[RandomSkyboxSetter] ExecuteStep を開始します。 (対象フォルダ: Assets/Resources/{folderPath})", this);
+
         SetRandomSkybox();
 
-        // 2. 設定されたマテリアルやライティングの反映を保証するため1フレーム待機
+        // 1フレーム待機してライティング反映を確実にする
         yield return null;
+
+        UnityEngine.Debug.Log("[RandomSkyboxSetter] ExecuteStep が正常に完了しました。", this);
     }
 
     [ContextMenu("Randomize Skybox")]
     public void SetRandomSkybox()
     {
-        // 1. Resourcesフォルダから指定フォルダ内のすべてのTexture2Dを取得
-        Texture2D[] textures = Resources.LoadAll<Texture2D>(folderPath);
-
-        if (textures == null || textures.Length == 0)
+        // 1. Volume の参照チェック
+        if (globalVolume == null)
         {
-            Debug.LogWarning($"[RandomSkyboxSetter] '{folderPath}' フォルダ内に画像が見つかりませんでした。Assets/Resources/{folderPath}/ に画像があるか確認してください。");
+            UnityEngine.Debug.LogError("[RandomSkyboxSetter][エラー] Global Volume が Inspector で指定されていません。", this);
             return;
         }
 
-        // 2. ランダムに1枚の画像を選択
-        int randomIndex = Random.Range(0, textures.Length);
-        Texture2D selectedTexture = textures[randomIndex];
-
-        // 3. Skybox用マテリアルを動的に生成
-        Shader skyboxShader = Shader.Find(shaderName);
-        if (skyboxShader == null)
+        if (globalVolume.profile == null)
         {
-            Debug.LogError($"[RandomSkyboxSetter] シェーダー '{shaderName}' が見つかりません。");
+            UnityEngine.Debug.LogError("[RandomSkyboxSetter][エラー] 指定された Volume に VolumeProfile が設定されていません。", this);
             return;
         }
 
-        Material skyboxMaterial = new Material(skyboxShader);
-
-        // シェーダーのプロパティ（_MainTex）に選択したテクスチャをセット
-        if (skyboxMaterial.HasProperty("_MainTex"))
+        // 2. VolumeProfile から HDRISky コンポーネント（オーバーライド）を取得
+        if (!globalVolume.profile.TryGet<HDRISky>(out var hdriSky))
         {
-            skyboxMaterial.SetTexture("_MainTex", selectedTexture);
+            UnityEngine.Debug.LogError("[RandomSkyboxSetter][エラー] Volume Profile 内に 'HDRI Sky' オーバーライドが見つかりません。Add Override > Sky > HDRI Sky を追加してください。", this);
+            return;
         }
 
-        // 4. ライティング/環境のSkyboxに適用
-        RenderSettings.skybox = skyboxMaterial;
+        // 3. Resources フォルダから Cubemap (.exr 含む) をすべてロード
+        Cubemap[] cubemaps = Resources.LoadAll<Cubemap>(folderPath);
 
-        // 5. 環境光（ライティング）を更新
+        if (cubemaps == null || cubemaps.Length == 0)
+        {
+            UnityEngine.Debug.LogError($"[RandomSkyboxSetter][エラー:画像読み込み失敗] 'Assets/Resources/{folderPath}' 内に Cubemap (EXR等) が見つかりませんでした。Import Settings で Texture Shape が 'Cube' になっているか確認してください。", this);
+            return;
+        }
+
+        // 4. ランダムに 1 つ選択して HDRI Sky に設定
+        int randomIndex = UnityEngine.Random.Range(0, cubemaps.Length);
+        Cubemap selectedCubemap = cubemaps[randomIndex];
+
+        hdriSky.hdriSky.value = selectedCubemap;
+
+        // 5. 環境光（GI）を更新
         DynamicGI.UpdateEnvironment();
 
-        Debug.Log($"Skyboxを設定しました: {selectedTexture.name} (フォルダ: {folderPath})");
+        UnityEngine.Debug.Log($"[RandomSkyboxSetter][成功] HDRP HDRI Sky を更新しました: '{selectedCubemap.name}'", this);
     }
 }
