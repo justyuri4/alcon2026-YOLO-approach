@@ -34,6 +34,7 @@ public class DatasetGeneratorManager : MonoBehaviour
         }
         else
         {
+            // Unity 2023.1以降では FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None) を推奨
             var components = FindObjectsOfType<MonoBehaviour>();
             foreach (var comp in components)
             {
@@ -66,16 +67,7 @@ public class DatasetGeneratorManager : MonoBehaviour
             Debug.LogWarning("[GeneratorManager] RandomCameraController が見つかりませんでした。");
         }
 
-        // 3. リセット処理（一括）
-        foreach (var step in steps)
-        {
-            if (step is IResettableStep resettable)
-            {
-                resettable.ResetIndex();
-            }
-        }
-
-        // 4. 指定回数分ループ生成
+        // 3. 指定回数分ループ生成
         for (int i = 0; i < numberOfImages; i++)
         {
             // カメラ以外の IProcessStep を実行
