@@ -86,21 +86,7 @@ public class DatasetDebugManager : MonoBehaviour
         }
 
         // =========================================================
-        // 3. リセット処理
-        //
-        // RandomCameraControllerもリセットだけは実行する
-        // =========================================================
-
-        foreach (var step in steps)
-        {
-            if (step is IResettableStep resettable)
-            {
-                resettable.ResetIndex();
-            }
-        }
-
-        // =========================================================
-        // 4. RandomCameraController以外の
+        // 3. RandomCameraController以外の
         //    IProcessStepをすべて実行
         //
         // ここではカメラを実行しない
@@ -136,7 +122,7 @@ public class DatasetDebugManager : MonoBehaviour
         }
 
         // =========================================================
-        // 5. すべてのIProcessStepが完了
+        // 4. すべてのIProcessStepが完了
         // =========================================================
 
         Debug.Log(
@@ -148,7 +134,7 @@ public class DatasetDebugManager : MonoBehaviour
         yield return null;
 
         // =========================================================
-        // 6. 最後にカメラを実行
+        // 5. 最後にカメラを実行
         //
         // Skybox / オブジェクト / その他の処理が
         // すべて完了した後にここへ来る
@@ -170,7 +156,7 @@ public class DatasetDebugManager : MonoBehaviour
         }
 
         // =========================================================
-        // 7. 全処理完了
+        // 6. 全処理完了
         // =========================================================
 
         Debug.Log(
