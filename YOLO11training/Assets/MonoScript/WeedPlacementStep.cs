@@ -1,23 +1,37 @@
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-public class WeedPlacementStep : MonoBehaviour
+// 名前空間の競合（CS0104）を回避するためのエイリアス指定
+using Debug = UnityEngine.Debug;
+using Application = UnityEngine.Application;
+using Random = UnityEngine.Random;
+
+public class WeedPlacementStep : MonoBehaviour, IProcessStep
 {
     [Header("Weed Prefabs")]
     public GameObject[] weedPrefabs;
 
-    [Header("Placement")]
+    [Header("Placement Area")]
+    [Tooltip("配置対象の領域オブジェクト（MeshRendererが付いている土壌など）。未設定の場合は自身または親を参照します。")]
     public Transform placementArea;
     public bool useGeneratedPaddyField = true;
+
+    [Header("Random Placement Settings")]
+    [Tooltip("配置する雑草の総数")]
+    public int spawnCount = 100;
+
+    [Header("Ground Placement Settings")]
     public bool placeOnGroundSurface = true;
-    public LayerMask groundLayers = ~0;
     public float raycastStartHeight = 100f;
     public float raycastDistance = 200f;
-    public float surfaceOffset = 0f;
-    public int weedCount = 10;
-    public Vector2 areaSize = new Vector2(10f, 10f);
+
+    [Header("Size & Height Offset（メートル単位：1.0 = 1m）")]
+    [Tooltip("雑草のスケール（拡大縮小）範囲")]
     public Vector2 scaleRange = new Vector2(0.8f, 1.2f);
-    public float height = 0f;
+
+    [Tooltip("接地面からの高さオフセット（メートル）")]
+    public float surfaceOffset = 0f;
 
     [Header("Execution")]
     public bool clearBeforePlacement = true;
@@ -28,6 +42,7 @@ public class WeedPlacementStep : MonoBehaviour
 
     public IEnumerator ExecuteStep()
     {
+        Debug.Log("[WeedPlacementStep] Starting ExecuteStep...");
         PlaceWeeds();
         yield return null;
     }
@@ -35,16 +50,18 @@ public class WeedPlacementStep : MonoBehaviour
     [ContextMenu("Place Weeds")]
     public void PlaceWeeds()
     {
+        Debug.Log("[WeedPlacementStep] Starting PlaceWeeds process.");
         ClearPlacedWeeds();
 
         if (weedPrefabs == null || weedPrefabs.Length == 0)
         {
-            Debug.LogWarning("At least one weed prefab is required.");
+            Debug.LogError("[WeedPlacementStep] Failed to place weeds: 'weedPrefabs' array is null or empty.");
             return;
         }
 
-        if (weedCount <= 0)
+        if (spawnCount <= 0)
         {
+            Debug.LogWarning("[WeedPlacementStep] 'spawnCount' is less than or equal to 0.");
             return;
         }
 
@@ -53,35 +70,123 @@ public class WeedPlacementStep : MonoBehaviour
             Random.InitState(seed);
         }
 
+        Transform areaTransform = ResolvePlacementArea();
+        MeshRenderer areaRenderer = areaTransform.GetComponentInChildren<MeshRenderer>();
+
+        Bounds areaBounds;
+        if (areaRenderer != null)
+        {
+            areaBounds = areaRenderer.bounds;
+        }
+        else
+        {
+            areaBounds = new Bounds(areaTransform.position, new Vector3(10f, 10f, 10f));
+        }
+
         generatedRoot = new GameObject("GeneratedWeeds").transform;
         generatedRoot.SetParent(transform, false);
 
-        Transform areaTransform = ResolvePlacementArea();
-        Vector3 areaCenter = areaTransform.position;
+        int successfullyPlaced = 0;
+        int outOfBoundsCount = 0;
 
-        for (int index = 0; index < weedCount; index++)
+        float mudSurfaceY = areaBounds.max.y;
+
+        for (int i = 0; i < spawnCount; i++)
         {
             GameObject weedPrefab = weedPrefabs[Random.Range(0, weedPrefabs.Length)];
-            if (weedPrefab == null)
+            if (weedPrefab == null) continue;
+
+            // X, Z 領域内で完全ランダムな座標を生成
+            float randomX = Random.Range(areaBounds.min.x, areaBounds.max.x);
+            float randomZ = Random.Range(areaBounds.min.z, areaBounds.max.z);
+            Vector3 candidatePos = new Vector3(randomX, mudSurfaceY, randomZ);
+
+            Vector3 groundPosition = candidatePos;
+
+            if (placeOnGroundSurface)
             {
-                continue;
+                // placementArea（またはその配下）のオブジェクトと衝突したか判定
+                bool groundHit = TryGetGroundPositionOnArea(candidatePos, areaTransform, out groundPosition);
+                if (!groundHit)
+                {
+                    outOfBoundsCount++;
+                    continue;
+                }
             }
 
-            float x = Random.Range(-areaSize.x * 0.5f, areaSize.x * 0.5f);
-            float z = Random.Range(-areaSize.y * 0.5f, areaSize.y * 0.5f);
-            Vector3 position = areaCenter + new Vector3(x, height, z);
-
-            if (placeOnGroundSurface && TryGetGroundPosition(position, areaTransform, out Vector3 groundPosition))
-            {
-                position = groundPosition;
-            }
-
-            GameObject weedInstance = Instantiate(weedPrefab, position, Quaternion.identity, generatedRoot);
+            GameObject weedInstance = Instantiate(weedPrefab, groundPosition, Quaternion.identity, generatedRoot);
 
             float yaw = Random.Range(0f, 360f);
             weedInstance.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+            // 親オブジェクトのスケール影響を打ち消して絶対的なワールドスケールを設定
             float scale = Random.Range(scaleRange.x, scaleRange.y);
-            weedInstance.transform.localScale = Vector3.one * scale;
+            Vector3 desiredWorldScale = Vector3.one * scale;
+            Vector3 parentScale = generatedRoot.lossyScale;
+
+            weedInstance.transform.localScale = new Vector3(
+                desiredWorldScale.x / (parentScale.x != 0 ? parentScale.x : 1f),
+                desiredWorldScale.y / (parentScale.y != 0 ? parentScale.y : 1f),
+                desiredWorldScale.z / (parentScale.z != 0 ? parentScale.z : 1f)
+            );
+
+            if (placeOnGroundSurface)
+            {
+                AlignBottomToGround(weedInstance, groundPosition);
+            }
+
+            successfullyPlaced++;
+        }
+
+        Debug.Log($"[WeedPlacementStep] Completed: {successfullyPlaced}/{spawnCount} weeds placed. (Out of bounds/hits skipped: {outOfBoundsCount})");
+    }
+
+    private void AlignBottomToGround(GameObject instance, Vector3 targetGroundPosition)
+    {
+        Bounds combinedBounds = default;
+        bool hasBounds = false;
+
+        Renderer[] renderers = instance.GetComponentsInChildren<Renderer>();
+        foreach (Renderer rend in renderers)
+        {
+            if (!hasBounds)
+            {
+                combinedBounds = rend.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                combinedBounds.Encapsulate(rend.bounds);
+            }
+        }
+
+        if (!hasBounds)
+        {
+            Collider[] colliders = instance.GetComponentsInChildren<Collider>();
+            foreach (Collider col in colliders)
+            {
+                if (!hasBounds)
+                {
+                    combinedBounds = col.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    combinedBounds.Encapsulate(col.bounds);
+                }
+            }
+        }
+
+        if (hasBounds)
+        {
+            float bottomY = combinedBounds.min.y;
+            float currentPivotY = instance.transform.position.y;
+            float offsetFromPivotToBottom = currentPivotY - bottomY;
+            instance.transform.position = targetGroundPosition + Vector3.up * (offsetFromPivotToBottom + surfaceOffset);
+        }
+        else
+        {
+            instance.transform.position = targetGroundPosition + Vector3.up * surfaceOffset;
         }
     }
 
@@ -99,8 +204,6 @@ public class WeedPlacementStep : MonoBehaviour
             {
                 return generatedField;
             }
-
-            Debug.LogWarning("GeneratedPaddyField was not found. Run PaddyFieldGenerator before placing weeds.");
         }
 
         return transform;
@@ -112,24 +215,40 @@ public class WeedPlacementStep : MonoBehaviour
         ClearPlacedWeeds(true);
     }
 
-    private bool TryGetGroundPosition(Vector3 candidatePosition, Transform areaTransform, out Vector3 groundPosition)
+    /// <summary>
+    /// レイキャストのヒット対象が placementArea 内（またはその子）である場合のみ位置を取得する
+    /// </summary>
+    private bool TryGetGroundPositionOnArea(Vector3 candidatePosition, Transform areaTransform, out Vector3 groundPosition)
     {
         Vector3 rayOrigin = new Vector3(
             candidatePosition.x,
             areaTransform.position.y + raycastStartHeight,
             candidatePosition.z);
 
-        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, raycastDistance, groundLayers))
+        // RaycastAll で直線上のヒット対象をすべて取得
+        RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, raycastDistance);
+
+        // placementArea 自身または配下の Transform に最も近いヒットを採用
+        float closestDistance = float.MaxValue;
+        bool foundValidHit = false;
+        Vector3 bestHitPoint = candidatePosition;
+
+        foreach (RaycastHit hit in hits)
         {
-            if (hit.transform == areaTransform || hit.transform.IsChildOf(areaTransform))
+            bool isChildOrSelf = hit.transform == areaTransform || hit.transform.IsChildOf(areaTransform);
+            if (isChildOrSelf)
             {
-                groundPosition = hit.point + Vector3.up * surfaceOffset;
-                return true;
+                if (hit.distance < closestDistance)
+                {
+                    closestDistance = hit.distance;
+                    bestHitPoint = hit.point;
+                    foundValidHit = true;
+                }
             }
         }
 
-        groundPosition = candidatePosition;
-        return false;
+        groundPosition = bestHitPoint;
+        return foundValidHit;
     }
 
     private void ClearPlacedWeeds(bool force = false)
@@ -143,6 +262,8 @@ public class WeedPlacementStep : MonoBehaviour
         {
             return;
         }
+
+        Debug.Log($"[WeedPlacementStep] Clearing existing weeds under '{generatedRoot.name}'.");
 
         if (Application.isPlaying)
         {

@@ -149,23 +149,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeedPlacementStep
   weedPrefabs:
-  - {fileID: 8771091787928289351, guid: 2979ad29796af5447a7f13495df85f15, type: 3}
-  - {fileID: 8771091787928289351, guid: 1275f964f742a6640b332483f7a47115, type: 3}
-  - {fileID: 9039648365391015519, guid: 42ccd6128874842e59310c23b46b45d2, type: 3}
-  - {fileID: 8771091787928289351, guid: b7d7ebfe9dbebda4d9e402415d23e0d5, type: 3}
+  - {fileID: 2894195685809358458, guid: d6d9b93ee553dbc49971c060001119d4, type: 3}
+  - {fileID: 9039648365391015519, guid: 8c894c4e1a61f9f4f9403c5402612bd9, type: 3}
+  - {fileID: 6402992078305018932, guid: cdd1798a4a9c1c444a95e88f2ea6af15, type: 3}
+  - {fileID: 560276820789284912, guid: 3432debc65b8d4047b131ea8c67528ad, type: 3}
   placementArea: {fileID: 1105161134}
   useGeneratedPaddyField: 1
+  spawnCount: 100
   placeOnGroundSurface: 1
-  groundLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
   raycastStartHeight: 100
   raycastDistance: 200
+  scaleRange: {x: 2, y: 3}
   surfaceOffset: 0
-  weedCount: 10
-  areaSize: {x: 10, y: 10}
-  scaleRange: {x: 0.8, y: 1.2}
-  height: 0
   clearBeforePlacement: 1
   useFixedSeed: 0
   seed: 0
@@ -177,8 +172,53 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 67902737}
   serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.523025, y: 6.440125, z: 3.760075}
+  m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1105161134}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &103840262
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 103840264}
+  - component: {fileID: 103840263}
+  m_Layer: 0
+  m_Name: DatasetDebugManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &103840263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 103840262}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b39d233ef8771ee4da2dcd425f19c8fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DatasetDebugManager
+  searchOnlyInChildren: 0
+--- !u!4 &103840264
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 103840262}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.20921, y: 2.57605, z: 1.50403}
+  m_LocalPosition: {x: 0.59665, y: -0, z: -0.43199}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -238,51 +278,6 @@ MonoBehaviour:
   minPlantHeight: 0.75
   maxPlantHeight: 0.9
   sinkDepth: 0.03
---- !u!1 &290753018
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 290753020}
-  - component: {fileID: 290753019}
-  m_Layer: 0
-  m_Name: DatasetDebugManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &290753019
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 290753018}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b39d233ef8771ee4da2dcd425f19c8fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DatasetDebugManager
-  searchOnlyInChildren: 0
---- !u!4 &290753020
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 290753018}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.22456, y: -0, z: -0.50118}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &391227971
 GameObject:
   m_ObjectHideFlags: 3
@@ -610,7 +605,6 @@ GameObject:
   - component: {fileID: 841968101}
   - component: {fileID: 841968100}
   - component: {fileID: 841968099}
-  - component: {fileID: 841968098}
   - component: {fileID: 841968103}
   - component: {fileID: 841968102}
   m_Layer: 0
@@ -620,18 +614,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &841968098
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 841968097}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
 --- !u!81 &841968099
 AudioListener:
   m_ObjectHideFlags: 0
@@ -720,7 +702,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Perception.Runtime::UnityEngine.Perception.GroundTruth.PerceptionCamera
   m_CameraSensor:
     rid: 8051667987636944932
-  m_Labelers: []
+  m_Labelers:
+  - rid: 8051667995668775121
   m_LayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -728,12 +711,12 @@ MonoBehaviour:
   description: 
   captureRgbImages: 1
   firstCaptureFrame: 0
-  captureTriggerMode: 0
+  captureTriggerMode: 1
   manualSensorAffectSimulationTiming: 0
   simulationDeltaTime: 0.0166
   framesBetweenCaptures: 0
   showVisualizations: 1
-  alphaThreshold: 0.1
+  alphaThreshold: 0
   overrideLayerMask: 0
   useAccumulation: 0
   references:
@@ -743,6 +726,12 @@ MonoBehaviour:
       type: {class: UnityCameraSensor, ns: UnityEngine.Perception.GroundTruth.Sensors, asm: Unity.Perception.Runtime}
       data:
         superSamplingFactor: 1
+    - rid: 8051667995668775121
+      type: {class: SemanticSegmentationLabeler, ns: UnityEngine.Perception.GroundTruth.Labelers, asm: Unity.Perception.Runtime}
+      data:
+        enabled: 1
+        annotationId: semantic segmentation
+        labelConfig: {fileID: 11400000, guid: e9f3c9d6d16d4e64f9f4bbb006ae8164, type: 2}
 --- !u!114 &841968103
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -930,8 +919,8 @@ MonoBehaviour:
   captureCamera: {fileID: 841968100}
   useRandomCamera: 1
   cameraHeightOffset: 1
-  targetMinHeight: 0.5
-  targetMaxHeight: 1.2
+  targetMinHeight: 0.7
+  targetMaxHeight: 1.5
 --- !u!4 &1105161134 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
@@ -978,6 +967,53 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.15727, y: 0, z: -0.25543}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1803885803
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1803885805}
+  - component: {fileID: 1803885804}
+  m_Layer: 0
+  m_Name: DatasetGeneratorManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &1803885804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1803885803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42a210cfd9a263846abbf3221192955a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DatasetGeneratorManager
+  maxCaptureCount: 100
+  captureInterval: 1
+  targetCamera: {fileID: 0}
+--- !u!4 &1803885805
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1803885803}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.59665, y: -0, z: -0.43199}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1109,6 +1145,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 863636298}
+    - targetCorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 67902739}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4667f131cd27c4334955735467d520b9, type: 3}
 --- !u!1660057539 &9223372036854775807
@@ -1120,6 +1159,6 @@ SceneRoots:
   - {fileID: 1624542157}
   - {fileID: 841968101}
   - {fileID: 391227973}
-  - {fileID: 290753020}
   - {fileID: 1880797571}
-  - {fileID: 67902739}
+  - {fileID: 1803885805}
+  - {fileID: 103840264}

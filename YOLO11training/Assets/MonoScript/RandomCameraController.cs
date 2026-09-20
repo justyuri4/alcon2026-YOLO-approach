@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Perception.GroundTruth;
 
-public class RandomCameraController : MonoBehaviour
+public class RandomCameraController : MonoBehaviour ,IProcessStep
 {
     [Header("撮影カメラ・Perception設定")]
     [Tooltip("撮影対象のPerceptionCamera（未設定の場合は captureCamera から自動取得します）")]

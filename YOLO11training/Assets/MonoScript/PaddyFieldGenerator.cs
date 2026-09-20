@@ -2,9 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// 名前空間の衝突（CS0104）を回避するためのエイリアス指定
+using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
+using Application = UnityEngine.Application;
+
 public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 {
-    [Header("イネの3Dモデル（単体）")]
+    [Header("イネの3Dモデル（単体 Prefab）")]
     public GameObject ricePrefab;
 
     [Header("親オブジェクト（指定しない場合は自身の親を取得）")]
@@ -26,9 +31,7 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
     [Header("めり込み調整（メートル単位）")]
     public float sinkDepth = 0.01f;      // 1cmめり込ませる
 
-    private const int MAX_VERTICES_PER_MESH = 60000;
-    private List<GameObject> generatedChunks = new List<GameObject>();
-    private List<Mesh> generatedMeshes = new List<Mesh>();
+    private Transform generatedRoot;
 
     public IEnumerator ExecuteStep()
     {
@@ -59,7 +62,6 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 
         MeshRenderer soilRenderer = paddySoilTransform.GetComponentInChildren<MeshRenderer>();
         MeshFilter prefabMeshFilter = ricePrefab.GetComponentInChildren<MeshFilter>();
-        MeshRenderer prefabRenderer = ricePrefab.GetComponentInChildren<MeshRenderer>();
 
         if (soilRenderer == null)
         {
@@ -72,9 +74,7 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
             return;
         }
 
-        Material sharedMaterial = prefabRenderer != null ? prefabRenderer.sharedMaterial : null;
         Mesh sourceMesh = prefabMeshFilter.sharedMesh;
-
         float localMeshHeight = sourceMesh.bounds.size.y;
         float localMinY = sourceMesh.bounds.min.y;
 
@@ -87,15 +87,12 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
         Bounds worldSoilBounds = soilRenderer.bounds;
         float mudSurfaceY = worldSoilBounds.max.y;
 
-        Vector3[] sourceVertices = sourceMesh.vertices;
-        Vector3[] sourceNormals = sourceMesh.normals;
-        Vector2[] sourceUVs = sourceMesh.uv;
-        int[] sourceTriangles = sourceMesh.triangles;
+        // 生成されたイネをまとめる親オブジェクトを作成
+        GameObject rootObj = new GameObject("GeneratedPaddyField");
+        generatedRoot = rootObj.transform;
+        generatedRoot.SetParent(paddySoilTransform, false);
 
-        List<Vector3> verts = new List<Vector3>();
-        List<Vector3> normals = new List<Vector3>();
-        List<Vector2> uvs = new List<Vector2>();
-        List<int> tris = new List<int>();
+        int totalCount = 0;
 
         for (float x = worldSoilBounds.min.x + (rowSpacing / 2f); x < worldSoilBounds.max.x; x += rowSpacing)
         {
@@ -105,15 +102,9 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 
                 for (int i = 0; i < riceCount; i++)
                 {
-                    if (verts.Count + sourceVertices.Length > MAX_VERTICES_PER_MESH)
-                    {
-                        CreateChunk(verts, normals, uvs, tris, sharedMaterial);
-                        verts.Clear(); normals.Clear(); uvs.Clear(); tris.Clear();
-                    }
-
                     float targetPlantHeight = Random.Range(minPlantHeight, maxPlantHeight);
                     float scaleRatio = targetPlantHeight / localMeshHeight;
-                    Vector3 worldScale = Vector3.one * scaleRatio;
+                    Vector3 desiredWorldScale = Vector3.one * scaleRatio;
                     float scaledMinY = localMinY * scaleRatio;
 
                     Vector2 randomCircle = Random.insideUnitCircle * hillRadius;
@@ -125,79 +116,47 @@ public class PaddyFieldGenerator : MonoBehaviour, IProcessStep
 
                     Quaternion worldRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-                    Matrix4x4 worldTRS = Matrix4x4.TRS(worldPos, worldRot, worldScale);
-                    Matrix4x4 localTRS = paddySoilTransform.worldToLocalMatrix * worldTRS;
+                    // Prefabを複製（Instantiate）配置
+                    GameObject riceInstance = Instantiate(ricePrefab, worldPos, worldRot, generatedRoot);
 
-                    int vertexOffset = verts.Count;
-                    for (int v = 0; v < sourceVertices.Length; v++)
-                    {
-                        verts.Add(localTRS.MultiplyPoint3x4(sourceVertices[v]));
-                        if (sourceNormals.Length > v)
-                        {
-                            normals.Add(localTRS.MultiplyVector(sourceNormals[v]).normalized);
-                        }
-                    }
+                    // 親オブジェクトのスケール影響を打ち消して絶対的なワールドスケールを設定
+                    Vector3 parentScale = generatedRoot.lossyScale;
+                    riceInstance.transform.localScale = new Vector3(
+                        desiredWorldScale.x / (parentScale.x != 0 ? parentScale.x : 1f),
+                        desiredWorldScale.y / (parentScale.y != 0 ? parentScale.y : 1f),
+                        desiredWorldScale.z / (parentScale.z != 0 ? parentScale.z : 1f)
+                    );
 
-                    if (sourceUVs.Length > 0) uvs.AddRange(sourceUVs);
-
-                    for (int t = 0; t < sourceTriangles.Length; t++)
-                    {
-                        tris.Add(sourceTriangles[t] + vertexOffset);
-                    }
+                    totalCount++;
                 }
             }
         }
 
-        if (verts.Count > 0)
-        {
-            CreateChunk(verts, normals, uvs, tris, sharedMaterial);
-        }
-
-        Debug.Log($"[PaddyFieldGenerator] イネの生成が完了しました。（Chunk数: {generatedChunks.Count}）");
+        Debug.Log($"[PaddyFieldGenerator] イネの生成が完了しました。（合計本数: {totalCount}）");
     }
 
     public void ClearField()
     {
-        foreach (GameObject chunk in generatedChunks)
+        if (generatedRoot == null)
         {
-            if (chunk != null) DestroyImmediate(chunk);
-        }
-        foreach (Mesh mesh in generatedMeshes)
-        {
-            if (mesh != null) DestroyImmediate(mesh);
+            generatedRoot = paddySoilTransform != null ? paddySoilTransform.Find("GeneratedPaddyField") : transform.Find("GeneratedPaddyField");
         }
 
-        generatedChunks.Clear();
-        generatedMeshes.Clear();
+        if (generatedRoot != null)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(generatedRoot.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(generatedRoot.gameObject);
+            }
+            generatedRoot = null;
+        }
 
         System.GC.Collect();
         Resources.UnloadUnusedAssets();
-    }
-
-    private void CreateChunk(List<Vector3> verts, List<Vector3> normals, List<Vector2> uvs, List<int> tris, Material mat)
-    {
-        Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        mesh.SetVertices(verts);
-        mesh.SetNormals(normals);
-        mesh.SetUVs(0, uvs);
-        mesh.SetTriangles(tris, 0);
-        mesh.RecalculateBounds();
-        generatedMeshes.Add(mesh);
-
-        GameObject chunk = new GameObject("PaddyChunk");
-        chunk.transform.SetParent(paddySoilTransform, false);
-
-        chunk.transform.localPosition = Vector3.zero;
-        chunk.transform.localRotation = Quaternion.identity;
-        chunk.transform.localScale = Vector3.one;
-
-        MeshFilter mf = chunk.AddComponent<MeshFilter>();
-        MeshRenderer mr = chunk.AddComponent<MeshRenderer>();
-        mf.sharedMesh = mesh;
-        mr.sharedMaterial = mat;
-
-        generatedChunks.Add(chunk);
     }
 
     private void OnDestroy()
