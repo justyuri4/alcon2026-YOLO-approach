@@ -1,3 +1,5 @@
-from ultralytics import YOLO
-model = YOLO("yolo11n-seg.pt") # セグメンテーション用の軽量モデルを自動ダウンロード
-print("インストール成功！")
+# PyTorchのインストール（環境に合わせてCUDAバージョンを選択）
+pip install torch torchvision torchaudio
+
+# Ultralyticsおよび必要なライブラリのインストール
+pip install ultralytics opencv-python matplotlib
