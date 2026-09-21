@@ -1,0 +1,19 @@
+{
+  "unityVersion": "6000.2.6f1",
+  "perceptionVersion": "1.0.0-preview.1",
+  "renderPipeline": "HDRP",
+  "simulationStartTime": "9/21/2026 10:49:30 AM",
+  "totalFrames": 10,
+  "totalSequences": 1,
+  "sensors": [
+    "camera"
+  ],
+  "metricCollectors": [],
+  "simulationEndTime": "9/21/2026 10:49:43 AM",
+  "annotators": [
+    {
+      "name": "semantic segmentation",
+      "type": "type.unity.com/unity.solo.SemanticSegmentationAnnotation"
+    }
+  ]
+}

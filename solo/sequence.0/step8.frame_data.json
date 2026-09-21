@@ -1,0 +1,86 @@
+{
+  "frame": 46,
+  "sequence": 0,
+  "step": 8,
+  "timestamp": 9.601701,
+  "captures": [
+    {
+      "@type": "type.unity.com/unity.solo.RGBCamera",
+      "id": "camera",
+      "description": "",
+      "position": [
+        -2.0,
+        1.0,
+        0.659918249
+      ],
+      "rotation": [
+        -0.020350324,
+        0.8098637,
+        0.0281442869,
+        0.5855891
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "acceleration": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "filename": "step8.camera.png",
+      "imageFormat": "Png",
+      "dimension": [
+        781.0,
+        340.0
+      ],
+      "projection": "Perspective",
+      "matrix": [
+        0.754512846,
+        0.0,
+        0.0,
+        0.0,
+        1.73205078,
+        0.0,
+        0.0,
+        0.0,
+        -1.0006001
+      ],
+      "annotations": [
+        {
+          "@type": "type.unity.com/unity.solo.SemanticSegmentationAnnotation",
+          "id": "semantic segmentation",
+          "sensorId": "camera",
+          "description": "Generates a semantic segmentation image for each captured frame. Each object is rendered to the semantic segmentation image using the color associated with it based on this labeler's associated semantic segmentation label configuration. Semantic segmentation images are saved to the dataset in PNG format. Please note that only one SemanticSegmentationLabeler can render at once across all cameras.",
+          "imageFormat": "Png",
+          "dimension": [
+            781.0,
+            340.0
+          ],
+          "filename": "step8.camera.semantic segmentation.png",
+          "instances": [
+            {
+              "labelName": "old_rice",
+              "pixelValue": [
+                0,
+                0,
+                255,
+                255
+              ]
+            },
+            {
+              "labelName": "weed",
+              "pixelValue": [
+                0,
+                255,
+                0,
+                255
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

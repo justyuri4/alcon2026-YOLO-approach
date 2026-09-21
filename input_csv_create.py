@@ -1,58 +1,75 @@
-import os
-import csv
-from PIL import Image
+import sys
+from pathlib import Path
 
-# ==========================================
-# 設定
-# ==========================================
-# カレントディレクトリを対象に設定
-IMAGE_DIR = "."
-
-# input.csv の保存先
-OUTPUT_CSV = "input.csv"
-
-# 対象とする画像の拡張子 (lower()で判定するため小文字のみに統一)
-VALID_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.bmp')
+# 画像サイズ(width, height)取得用にPillowを使用します
+try:
+    from PIL import Image
+except ImportError:
+    print("エラー: Pillow ライブラリが見つかりません。")
+    print("以下のコマンドでインストールしてください:")
+    print("  pip install Pillow")
+    sys.exit(1)
 
 
-def generate_input_csv(target_dir, csv_path):
-    if not os.path.exists(target_dir):
-        print(f"エラー: フォルダ '{target_dir}' が見つかりません。")
-        return
+def main():
+    # 処理対象のディレクトリ（カレントディレクトリ）
+    target_dir = Path('.')
 
-    image_entries = []
+    # 対象とする画像拡張子（大文字小文字対応のため小文字で定義）
+    valid_extensions = {'.jpg', '.jpeg', '.png'}
 
-    # カレントディレクトリ内のファイルを取得 (直下のみを対象)
-    for file in sorted(os.listdir(target_dir)):
-        # 拡張子判定（大文字小文字を区別しない）
-        if file.lower().endswith(VALID_EXTENSIONS):
-            # output.csv 自体や自分自身は除外
-            full_path = os.path.join(target_dir, file)
-            rel_path = os.path.relpath(full_path, start=".").replace("\\", "/")
+    # ディレクトリ内の画像を検索（ソートして順番を固定）
+    image_paths = sorted([
+        p for p in target_dir.iterdir()
+        if p.is_file() and p.suffix.lower() in valid_extensions
+    ])
 
-            try:
-                # 画像を開いてサイズ（幅, 高さ）を取得
-                with Image.open(full_path) as img:
-                    width, height = img.size
-                    image_entries.append((width, height, rel_path))
-            except Exception as e:
-                print(f"警告: {full_path} の読み込みに失敗しました ({e})。スキップします。")
+    # --------------------------------------------------
+    # 判定・動作確認（デバッグ出力）
+    # --------------------------------------------------
+    print("=== 画像検索結果 ===")
+    print(f"検索対象フォルダ : {target_dir.resolve()}")
+    print(f"検出された画像数 : {len(image_paths)}")
 
-    if not image_entries:
-        print(f"対象となる画像ファイルが '{target_dir}' 内に見つかりませんでした。")
-        return
+    if not image_paths:
+        print("\n⚠️ 画像ファイルが見つかりませんでした。")
+        print("【フォルダ内のファイル一覧】")
+        for p in target_dir.iterdir():
+            if p.is_file():
+                print(f"  - {p.name}")
+        sys.exit(1)
 
-    # input.csv に書き出し
-    with open(csv_path, "w", encoding="utf-8") as f:
+    print("検出ファイル一覧:")
+    for p in image_paths:
+        print(f"  - {p.name}")
+    print("====================\n")
+
+    # --------------------------------------------------
+    # input.csv の生成処理
+    # --------------------------------------------------
+    output_csv = target_dir / "input.csv"
+
+    with open(output_csv, mode="w", encoding="utf-8", newline="") as f:
         # 1行目: 処理画像数 N
-        f.write(f"{len(image_entries)}\n")
-        
-        # 2行目以降: 画像幅,画像高さ,入力画像ファイルの相対パス
-        for width, height, rel_path in image_entries:
-            f.write(f"{width},{height},{rel_path}\n")
+        f.write(f"{len(image_paths)}\n")
 
-    print(f"成功: {len(image_entries)} 件の画像情報を '{csv_path}' に書き出しました。")
+        # 2行目以降: [width],[height],[相対パス]
+        for img_path in image_paths:
+            try:
+                with Image.open(img_path) as img:
+                    width, height = img.size
+                
+                # パス表記（文字列）を取得
+                relative_path = str(img_path)
+
+                # 書き込み
+                f.write(f"{width},{height},{relative_path}\n")
+
+            except Exception as e:
+                print(f"⚠️ {img_path.name} の処理中にエラーが発生しました: {e}")
+
+    print(f"✅ 作成完了: {output_csv.resolve()}")
 
 
 if __name__ == "__main__":
-    generate_input_csv(IMAGE_DIR, OUTPUT_CSV)
+    main()

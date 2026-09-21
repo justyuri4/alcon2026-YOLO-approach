@@ -1,26 +1,31 @@
 import os
-from ultralytics import SAM
+from pathlib import Path
+from ultralytics import YOLO
 
 def main():
-    # 1. –‘OŠwKÏ‚İ SAM ƒ‚ƒfƒ‹‚Ìƒ[ƒh
-    # ¦ sam_b.pt, sam_l.pt, sam2_b.pt ‚È‚Ç‚ªg—p‰Â”\‚Å‚·
-    model = SAM("sam_b.pt")
+    # å®Ÿè¡Œã™ã‚‹ train.py ãŒç½®ã„ã¦ã‚ã‚‹ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’å–å¾—
+    PROJECT_ROOT = Path(__file__).resolve().parent
 
-    # 2. ƒtƒ@ƒCƒ“ƒ`ƒ…[ƒjƒ“ƒO‚ÌÀs
+    # ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆãƒ«ãƒ¼ãƒˆã‹ã‚‰ã®ç›¸å¯¾ãƒ‘ã‚¹ã§ data.yaml ã‚’æŒ‡å®š
+    data_yaml_path = PROJECT_ROOT / "data.yaml"
+
+    # YOLO26 (ã¾ãŸã¯ YOLOv11/v8) ã®ãƒ¢ãƒ‡ãƒ«æŒ‡å®š
+    model = YOLO("yolo26n-seg.pt")
+
     results = model.train(
-        data="data.yaml",      # ƒf[ƒ^ƒZƒbƒgİ’èƒtƒ@ƒCƒ‹‚ÌƒpƒX
-        epochs=50,             # ƒGƒ|ƒbƒN”
-        imgsz=640,             # ‰æ‘œƒTƒCƒY
-        batch=8,               # ƒoƒbƒ`ƒTƒCƒY (GPUƒƒ‚ƒŠ‚É‰‚¶‚Ä’²®)
-        device=0,              # GPU”Ô† (CPU‚Ìê‡‚Í 'cpu')
-        workers=4,             # ƒf[ƒ^“Ç‚İ‚İ‚Ìƒ[ƒJ[”
-        project="runs/sam",    # •Û‘¶æƒtƒHƒ‹ƒ_–¼
-        name="finetune_sam",   # ÀŒ±–¼
-        exist_ok=True          # ƒtƒHƒ‹ƒ_‚ª‘¶İ‚·‚éê‡‚Éã‘‚«‹–‰Â
+        data=str(data_yaml_path), # ãƒ‘ã‚¹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¸¡ã™
+        epochs=50,
+        imgsz=640,
+        batch=8,
+        device="mps",             # Apple Silicon Macã®å ´åˆ ('cpu', 'cuda', 'mps')
+        workers=4,
+        project="runs/segment",   # runs/segment ãƒ•ã‚©ãƒ«ãƒ€ä»¥ä¸‹ã«å‡ºåŠ› (ç›¸å¯¾ãƒ‘ã‚¹)
+        name="finetune_yolo26_seg",
+        exist_ok=True
     )
 
-    print("ŠwK‚ªŠ®—¹‚µ‚Ü‚µ‚½B")
-    print(f"Å—Çƒ‚ƒfƒ‹‚Ì•Û‘¶æ: {os.path.join(results.save_dir, 'weights', 'best.pt')}")
+    print("å­¦ç¿’ãŒå®Œäº†ã—ã¾ã—ãŸã€‚")
+    print(f"æœ€è‰¯ãƒ¢ãƒ‡ãƒ«ã®ä¿å­˜å…ˆ: {os.path.join(results.save_dir, 'weights', 'best.pt')}")
 
 if __name__ == "__main__":
     main()
