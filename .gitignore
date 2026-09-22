@@ -153,3 +153,7 @@ cython_debug/
 .DS_Store?
 ehthumbs.db
 Thumbs.db
+
+#env
+.venv-cpu/
+.venv-rocm/

@@ -1,6 +1,6 @@
 import csv
 import os
-from pathlib import Path
+from pathlib import Path    
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -24,12 +24,27 @@ COLOR_BACKGROUND = (0, 0, 0)          # 背景: 黒色
 COLOR_RICE = (128, 128, 128)          # 水稲 (p): 灰色 (0x80, 0x80, 0x80)
 COLOR_WEED = (255, 255, 255)          # 雑草 (w): 白色 (0xFF, 0xFF, 0xFF)
 
+# 水稲と雑草のクラス名
+RICE_CLASS_NAMES = ["rice", "稲", "イネ"]
+WEED_CLASS_NAMES = ["weed", "雑草"]
+
 
 def load_model():
-    weights_path = PROJECT_ROOT / "runs/segment/finetune_yolo26_seg/weights/best.pt"
-    if not weights_path.exists():
-        weights_path = PROJECT_ROOT / "yolo26n-seg.pt"
+    weights_path = (
+        PROJECT_ROOT
+        / "runs"
+        / "segment"
+        / "finetune_yolo26_rocm"
+        / "weights"
+        / "best.pt"
+    )
 
+    if not weights_path.exists():
+        raise FileNotFoundError(
+            f"学習済みモデルが見つかりません: {weights_path}"
+        )
+
+    print(f"使用モデル: {weights_path}")
     return YOLO(str(weights_path))
 
 
@@ -40,33 +55,60 @@ def process_image(model, img_rel_path, width, height):
         print(f"⚠️ 画像が見つかりません: {img_path}")
         return None
 
+    # モデルのクラス名からクラスIDを取得
+    rice_class_names = {"premature_rice", "old_rice"}
+
+    if isinstance(model.names, dict):
+        class_items = model.names.items()       
+    else:
+        class_items = enumerate(model.names)
+
+    rice_class_ids = {
+        int(class_id)
+        for class_id, class_name in class_items
+        if str(class_name).strip().lower() in rice_class_names
+    }
+
+    print("モデルのクラス:", model.names)
+    print("水稲クラスID:", rice_class_ids)
+
+    if not rice_class_ids:
+        raise ValueError(
+            f"水稲クラスが見つかりません。model.names={model.names}"
+        )
+
     # 推論実行
-    results = model.predict(source=str(img_path), imgsz=640, verbose=False)[0]
+    results = model.predict(
+        source=str(img_path),
+        imgsz=640,
+        conf=0.1,
+        verbose=False,
+    )[0]
 
-    # 画素数カウント用変数の初期化
-    p_pixels = 0  # 水稲画素数
-    w_pixels = 0  # 雑草画素数
+    p_pixels = 0
+    w_pixels = 0
 
-    # マスク画像作成用のキャンバス（背景は黒色）
     mask_img = np.zeros((height, width, 3), dtype=np.uint8)
 
-    # マスク情報が存在する場合、クラスごとに描画と画素数を集計
     if results.masks is not None:
         classes = results.boxes.cls.cpu().numpy().astype(int)
-        masks = results.masks.data.cpu().numpy()  # (N, H, W)
+        masks = results.masks.data.cpu().numpy()
 
         for cls_id, mask in zip(classes, masks):
-            # 元画像サイズにリサイズ
             resized_mask = cv2.resize(
-                mask, (width, height), interpolation=cv2.INTER_NEAREST
+                mask,
+                (width, height),
+                interpolation=cv2.INTER_NEAREST,
             )
             mask_bool = resized_mask > 0.5
             pixel_count = int(np.sum(mask_bool))
 
-            if cls_id == CLASS_RICE:
+            # premature_rice と old_rice は同じ色で描画
+            if cls_id in rice_class_ids:
                 p_pixels += pixel_count
                 mask_img[mask_bool] = COLOR_RICE
-            elif cls_id == CLASS_WEED:
+
+            elif str(model.names[cls_id]).strip().lower() in WEED_CLASS_NAMES:
                 w_pixels += pixel_count
                 mask_img[mask_bool] = COLOR_WEED
 

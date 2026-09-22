@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Perception.GroundTruth;
+using Random = UnityEngine.Random;
 
-public class RandomCameraController : MonoBehaviour ,IProcessStep
+public class RandomCameraController : MonoBehaviour, IProcessStep
 {
     [Header("撮影カメラ・Perception設定")]
     [Tooltip("撮影対象のPerceptionCamera（未設定の場合は captureCamera から自動取得します）")]
@@ -18,12 +21,21 @@ public class RandomCameraController : MonoBehaviour ,IProcessStep
     [Tooltip("親オブジェクトの端からワールド単位で何ユニット上にカメラを置くか")]
     public float cameraHeightOffset = 1.0f;
 
-    [Header("カメラ注視点高さ設定（ワールド座標系）")]
-    [Tooltip("親オブジェクトの中心からワールド単位で指定する注視点の高さ最小値")]
-    public float targetMinHeight = 0.5f;
 
-    [Tooltip("親オブジェクトの中心からワールド単位で指定する注視点の高さ最大値")]
-    public float targetMaxHeight = 1.2f;
+    [Header("注視角度設定")]
+    [Tooltip("親オブジェクトの中心に対する上下方向の注視角度最小値（度）。0度は水平")]
+    public float targetMinAngle = -10.0f;
+
+    [Tooltip("親オブジェクトの中心に対する上下方向の注視角度最大値（度）。0度は水平")]
+    public float targetMaxAngle = 10.0f;
+
+    [Header("モーションブラー設定")]
+    [Tooltip("撮影時にモーションブラーを無効化するGlobal Volume")]
+    [SerializeField] private Volume captureVolume;
+
+    [SerializeField] private bool disableMotionBlurForCapture = true;
+
+    private MotionBlur motionBlur;
 
     private void Awake()
     {
@@ -31,6 +43,39 @@ public class RandomCameraController : MonoBehaviour ,IProcessStep
         if (perceptionCamera == null && captureCamera != null)
         {
             perceptionCamera = captureCamera.GetComponent<PerceptionCamera>();
+        }
+
+        if (!disableMotionBlurForCapture || captureVolume == null)
+        {
+            return;
+        }
+
+        if (captureVolume.profile == null)
+        {
+            Debug.LogWarning(
+                "[RandomCameraController] captureVolumeにVolume Profileが設定されていません。",
+                this
+            );
+
+            return;
+        }
+
+        if (captureVolume.profile.TryGet<MotionBlur>(out MotionBlur foundMotionBlur))
+        {
+            motionBlur = foundMotionBlur;
+            motionBlur.active = false;
+
+            Debug.Log(
+                "[RandomCameraController] 撮影用モーションブラーを無効化しました。",
+                this
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[RandomCameraController] Volume Profile内にMotion Blurが見つかりません。",
+                this
+            );
         }
     }
 
@@ -97,9 +142,26 @@ public class RandomCameraController : MonoBehaviour ,IProcessStep
             );
             captureCamera.transform.position = cameraPosition;
 
-            // 4. 注視点（Target）をワールド単位で設定
-            float randomTargetHeight = Random.Range(targetMinHeight, targetMaxHeight);
-            Vector3 targetPosition = bounds.center + Vector3.up * randomTargetHeight;
+            // 4. 注視角度をランダムに設定
+            float randomTargetAngle = Random.Range(targetMinAngle, targetMaxAngle);
+
+            // カメラとオブジェクト中心との水平距離
+            float horizontalDistance = Vector2.Distance(
+                new Vector2(cameraPosition.x, cameraPosition.z),
+                new Vector2(bounds.center.x, bounds.center.z)
+            );
+
+            // 注視角度から注視点のY座標だけを計算
+            float targetHeightOffset =
+                horizontalDistance * Mathf.Tan(randomTargetAngle * Mathf.Deg2Rad);
+
+            // X軸・Z軸は常にオブジェクトの中心位置を使用し、
+            // Y軸だけ注視角度に応じて変更
+            Vector3 targetPosition = new Vector3(
+                bounds.center.x,
+                bounds.center.y + targetHeightOffset,
+                bounds.center.z
+            );
 
             // 5. カメラを注視点に向けさせる
             captureCamera.transform.LookAt(targetPosition);

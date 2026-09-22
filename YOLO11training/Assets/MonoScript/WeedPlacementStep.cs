@@ -18,16 +18,17 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
     public bool useGeneratedPaddyField = true;
 
     [Header("Random Placement Settings")]
-    [Tooltip("配置する雑草の総数")]
-    public int spawnCount = 100;
+    [Tooltip("ランダムに選択する植え付け数の最小値")]
+    public int minSpawnCount = 0;
+
+    [Tooltip("ランダムに選択する植え付け数の最大値")]
+    public int maxSpawnCount = 1000;
 
     [Header("Ground Placement Settings")]
     public bool placeOnGroundSurface = true;
-    public float raycastStartHeight = 100f;
-    public float raycastDistance = 200f;
 
     [Header("Size & Height Offset（メートル単位：1.0 = 1m）")]
-    [Tooltip("雑草のスケール（拡大縮小）範囲")]
+    [Tooltip("生成後のオブジェクトの高さ範囲（メートル）")]
     public Vector2 scaleRange = new Vector2(0.8f, 1.2f);
 
     [Tooltip("接地面からの高さオフセット（メートル）")]
@@ -59,7 +60,20 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
             return;
         }
 
-        if (spawnCount <= 0)
+        int minCount = Mathf.Clamp(minSpawnCount, 0, 1000);
+        int maxCount = Mathf.Clamp(maxSpawnCount, 0, 1000);
+
+        if (minCount > maxCount)
+        {
+            int temporary = minCount;
+            minCount = maxCount;
+            maxCount = temporary;
+        }
+
+        // Random.Range(int, int) の最大値は含まれないため、+1する
+        int targetSpawnCount = Random.Range(minCount, maxCount + 1);
+
+        if (targetSpawnCount <= 0)
         {
             Debug.LogWarning("[WeedPlacementStep] 'spawnCount' is less than or equal to 0.");
             return;
@@ -91,7 +105,7 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
 
         float mudSurfaceY = areaBounds.max.y;
 
-        for (int i = 0; i < spawnCount; i++)
+        for (int i = 0; i < targetSpawnCount; i++)
         {
             GameObject weedPrefab = weedPrefabs[Random.Range(0, weedPrefabs.Length)];
             if (weedPrefab == null) continue;
@@ -106,7 +120,11 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
             if (placeOnGroundSurface)
             {
                 // placementArea（またはその配下）のオブジェクトと衝突したか判定
-                bool groundHit = TryGetGroundPositionOnArea(candidatePos, areaTransform, out groundPosition);
+                bool groundHit = TryGetGroundPositionOnArea(
+    candidatePos,
+    areaTransform,
+    areaBounds,
+    out groundPosition);
                 if (!groundHit)
                 {
                     outOfBoundsCount++;
@@ -130,6 +148,18 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
                 desiredWorldScale.z / (parentScale.z != 0 ? parentScale.z : 1f)
             );
 
+            // 元モデルの高さに関係なく、指定した高さになるようにスケール
+            float targetHeight = Random.Range(scaleRange.x, scaleRange.y);
+
+            if (TryGetObjectBounds(weedInstance, out Bounds originalBounds) &&
+                originalBounds.size.y > Mathf.Epsilon)
+            {
+                float heightScale = targetHeight / originalBounds.size.y;
+
+                // 現在のモデル倍率を維持したまま、均一倍率を適用
+                weedInstance.transform.localScale *= heightScale;
+            }
+
             if (placeOnGroundSurface)
             {
                 AlignBottomToGround(weedInstance, groundPosition);
@@ -138,7 +168,10 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
             successfullyPlaced++;
         }
 
-        Debug.Log($"[WeedPlacementStep] Completed: {successfullyPlaced}/{spawnCount} weeds placed. (Out of bounds/hits skipped: {outOfBoundsCount})");
+        Debug.Log(
+    $"[WeedPlacementStep] Completed: " +
+    $"{successfullyPlaced}/{targetSpawnCount} weeds placed. " +
+    $"(Out of bounds/hits skipped: {outOfBoundsCount})");
     }
 
     private void AlignBottomToGround(GameObject instance, Vector3 targetGroundPosition)
@@ -218,15 +251,28 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
     /// <summary>
     /// レイキャストのヒット対象が placementArea 内（またはその子）である場合のみ位置を取得する
     /// </summary>
-    private bool TryGetGroundPositionOnArea(Vector3 candidatePosition, Transform areaTransform, out Vector3 groundPosition)
+    private bool TryGetGroundPositionOnArea(
+    Vector3 candidatePosition,
+    Transform areaTransform,
+    Bounds areaBounds,
+    out Vector3 groundPosition)
     {
+        // 配置領域の大きさから余白を自動計算
+        float raycastPadding = Mathf.Max(1f, areaBounds.size.y * 0.05f);
+
         Vector3 rayOrigin = new Vector3(
             candidatePosition.x,
-            areaTransform.position.y + raycastStartHeight,
+            areaBounds.max.y + raycastPadding,
             candidatePosition.z);
 
+        float raycastDistance =
+            areaBounds.size.y + raycastPadding * 2f;
+
         // RaycastAll で直線上のヒット対象をすべて取得
-        RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, raycastDistance);
+        RaycastHit[] hits = Physics.RaycastAll(
+            rayOrigin,
+            Vector3.down,
+            raycastDistance);
 
         // placementArea 自身または配下の Transform に最も近いヒットを採用
         float closestDistance = float.MaxValue;
@@ -235,15 +281,15 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
 
         foreach (RaycastHit hit in hits)
         {
-            bool isChildOrSelf = hit.transform == areaTransform || hit.transform.IsChildOf(areaTransform);
-            if (isChildOrSelf)
+            bool isChildOrSelf =
+                hit.transform == areaTransform ||
+                hit.transform.IsChildOf(areaTransform);
+
+            if (isChildOrSelf && hit.distance < closestDistance)
             {
-                if (hit.distance < closestDistance)
-                {
-                    closestDistance = hit.distance;
-                    bestHitPoint = hit.point;
-                    foundValidHit = true;
-                }
+                closestDistance = hit.distance;
+                bestHitPoint = hit.point;
+                foundValidHit = true;
             }
         }
 
@@ -275,5 +321,39 @@ public class WeedPlacementStep : MonoBehaviour, IProcessStep
         }
 
         generatedRoot = null;
+    }
+
+    private bool TryGetObjectBounds(GameObject instance, out Bounds bounds)
+    {
+        Renderer[] renderers = instance.GetComponentsInChildren<Renderer>();
+
+        if (renderers.Length > 0)
+        {
+            bounds = renderers[0].bounds;
+
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            return bounds.size.y > Mathf.Epsilon;
+        }
+
+        Collider[] colliders = instance.GetComponentsInChildren<Collider>();
+
+        if (colliders.Length > 0)
+        {
+            bounds = colliders[0].bounds;
+
+            for (int i = 1; i < colliders.Length; i++)
+            {
+                bounds.Encapsulate(colliders[i].bounds);
+            }
+
+            return bounds.size.y > Mathf.Epsilon;
+        }
+
+        bounds = default;
+        return false;
     }
 }

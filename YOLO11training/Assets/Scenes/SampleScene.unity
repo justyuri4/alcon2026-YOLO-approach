@@ -155,11 +155,10 @@ MonoBehaviour:
   - {fileID: 560276820789284912, guid: 3432debc65b8d4047b131ea8c67528ad, type: 3}
   placementArea: {fileID: 1105161134}
   useGeneratedPaddyField: 1
-  spawnCount: 100
+  minSpawnCount: 0
+  maxSpawnCount: 1000
   placeOnGroundSurface: 1
-  raycastStartHeight: 100
-  raycastDistance: 200
-  scaleRange: {x: 2, y: 3}
+  scaleRange: {x: 0.5, y: 1.5}
   surfaceOffset: 0
   clearBeforePlacement: 1
   useFixedSeed: 0
@@ -195,7 +194,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &103840263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -268,15 +267,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eeeb87511add0794c8f2ecd45d35789b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PaddyFieldGeneratorCombine
-  ricePrefab: {fileID: 3153879773919659142, guid: 93cfd3cf3f634634a9e0e8bc7baa67f8, type: 3}
+  ricePrefabs:
+  - prefab: {fileID: 3153879773919659142, guid: 93cfd3cf3f634634a9e0e8bc7baa67f8, type: 3}
+    height: 0.9
+  - prefab: {fileID: 800977281167158293, guid: 65525c48543c0441490df4d662658811, type: 3}
+    height: 0.6
   paddySoilTransform: {fileID: 0}
   rowSpacing: 0.3
   plantSpacing: 0.1
   minRicePerHill: 1
   maxRicePerHill: 1
   hillRadius: 0.01
-  minPlantHeight: 0.75
-  maxPlantHeight: 0.9
   sinkDepth: 0.03
 --- !u!1 &391227971
 GameObject:
@@ -918,9 +919,9 @@ MonoBehaviour:
   perceptionCamera: {fileID: 841968102}
   captureCamera: {fileID: 841968100}
   useRandomCamera: 1
-  cameraHeightOffset: 1
-  targetMinHeight: 0.7
-  targetMaxHeight: 1.5
+  cameraHeightOffset: 1.5
+  targetMinAngle: -30
+  targetMaxAngle: 5
 --- !u!4 &1105161134 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
@@ -988,7 +989,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1803885804
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1001,9 +1002,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42a210cfd9a263846abbf3221192955a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DatasetGeneratorManager
-  maxCaptureCount: 100
-  captureInterval: 1
-  targetCamera: {fileID: 0}
+  searchOnlyInChildren: 0
+  captureCount: 1000
 --- !u!4 &1803885805
 Transform:
   m_ObjectHideFlags: 0
@@ -1082,15 +1082,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
       propertyPath: m_LocalPosition.x

@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using static System.Net.Mime.MediaTypeNames;
 
 public class DatasetGeneratorManager : MonoBehaviour
 {
@@ -13,105 +12,138 @@ public class DatasetGeneratorManager : MonoBehaviour
     [Tooltip("データセット撮影を繰り返す回数")]
     public int captureCount = 10;
 
-    void Start()
+    [Header("撮影安定化設定")]
+    [Tooltip("シーン生成後、撮影前に待機するフレーム数")]
+    [Min(0)]
+    public int framesBeforeCapture = 2;
+
+    [Tooltip("撮影要求後、次のシーン生成を始める前に待機するフレーム数")]
+    [Min(0)]
+    public int framesAfterCapture = 2;
+
+    private readonly List<IProcessStep> processSteps = new List<IProcessStep>();
+    private RandomCameraController cameraController;
+
+    private void Awake()
     {
-        StartCoroutine(RunDebugSequence());
+        CacheProcessSteps();
     }
 
-    IEnumerator RunDebugSequence()
+    private void Start()
     {
-        for (int i = 0; i < captureCount; i++)
+        if (processSteps.Count == 0)
         {
-            Debug.Log($"[DebugManager] --- シーケンス実行開始 ({i + 1} / {captureCount}) ---");
+            Debug.LogError(
+                "[DatasetGeneratorManager] IProcessStepを実装した有効なコンポーネントが見つかりませんでした。",
+                this
+            );
 
-            // =========================================================
-            // 1. IProcessStep を自動検索
-            // =========================================================
-            List<IProcessStep> steps = new List<IProcessStep>();
+            return;
+        }
 
-            if (searchOnlyInChildren)
+        StartCoroutine(RunSequence());
+    }
+
+    private void CacheProcessSteps()
+    {
+        processSteps.Clear();
+        cameraController = null;
+
+        MonoBehaviour[] components;
+
+        if (searchOnlyInChildren)
+        {
+            components = GetComponentsInChildren<MonoBehaviour>(true);
+        }
+        else
+        {
+            components = FindObjectsOfType<MonoBehaviour>(true);
+        }
+
+        foreach (MonoBehaviour component in components)
+        {
+            if (component is not IProcessStep step)
             {
-                var components = GetComponentsInChildren<MonoBehaviour>();
-                foreach (var comp in components)
-                {
-                    if (comp is IProcessStep step)
-                    {
-                        steps.Add(step);
-                    }
-                }
+                continue;
+            }
+
+            if (!component.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            if (step is RandomCameraController camera)
+            {
+                cameraController = camera;
             }
             else
             {
-                var components = FindObjectsOfType<MonoBehaviour>();
-                foreach (var comp in components)
-                {
-                    if (comp is IProcessStep step)
-                    {
-                        steps.Add(step);
-                    }
-                }
+                processSteps.Add(step);
             }
-
-            if (steps.Count == 0)
-            {
-                Debug.LogError("[DebugManager] IProcessStep を実装した有効なコンポーネントが見つかりませんでした！");
-                yield break;
-            }
-
-            // =========================================================
-            // 2. RandomCameraController を検索
-            // =========================================================
-            RandomCameraController cameraController = null;
-            foreach (var step in steps)
-            {
-                if (step is RandomCameraController camera)
-                {
-                    cameraController = camera;
-                    break;
-                }
-            }
-
-            if (cameraController == null)
-            {
-                Debug.LogWarning("[DebugManager] RandomCameraController が見つかりませんでした。");
-            }
-
-            // =========================================================
-            // 3. RandomCameraController以外の IProcessStep を実行
-            // =========================================================
-            foreach (var step in steps)
-            {
-                if (step is RandomCameraController) continue;
-
-                MonoBehaviour comp = step as MonoBehaviour;
-                string stepName = comp != null ? comp.name : "Unknown";
-
-                yield return StartCoroutine(step.ExecuteStep());
-            }
-
-            // レンダリング反映待ち
-            yield return null;
-
-            // =========================================================
-            // 4. 最後にカメラを実行（撮影）
-            // =========================================================
-            if (cameraController != null)
-            {
-                yield return StartCoroutine(cameraController.ExecuteStep());
-            }
-
-            Debug.Log($"[DebugManager] --- シーケンス完了 ({i + 1} / {captureCount}) ---");
         }
 
-        // =========================================================
-        // 5. 指定回数の処理がすべて完了したため再生停止
-        // =========================================================
-        Debug.Log("[DebugManager] 指定された回数の撮影がすべて完了しました。再生を終了します。");
+        Debug.Log(
+            $"[DatasetGeneratorManager] ステップをキャッシュしました。準備ステップ: {processSteps.Count}個",
+            this
+        );
+
+        if (cameraController == null)
+        {
+            Debug.LogWarning(
+                "[DatasetGeneratorManager] RandomCameraControllerが見つかりませんでした。",
+                this
+            );
+        }
+    }
+
+    private IEnumerator RunSequence()
+    {
+        for (int i = 0; i < captureCount; i++)
+        {
+            Debug.Log(
+                $"[DatasetGeneratorManager] --- シーケンス実行開始 ({i + 1} / {captureCount}) ---"
+            );
+
+            // 田んぼ生成、雑草配置、空などを実行
+            foreach (IProcessStep step in processSteps)
+            {
+                yield return step.ExecuteStep();
+            }
+
+            // Destroy、Instantiate、Label登録、ライティングの反映を待つ
+            yield return WaitForStableFrame(framesBeforeCapture);
+
+            // カメラ位置を変更して撮影を要求
+            if (cameraController != null)
+            {
+                yield return cameraController.ExecuteStep();
+            }
+
+            // RequestCapture後の画像・ラベル保存完了を待つ
+            yield return WaitForStableFrame(framesAfterCapture);
+
+            Debug.Log(
+                $"[DatasetGeneratorManager] --- シーケンス完了 ({i + 1} / {captureCount}) ---"
+            );
+        }
+
+        Debug.Log(
+            "[DatasetGeneratorManager] 指定された回数の撮影がすべて完了しました。"
+        );
 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();
 #endif
+    }
+
+    private IEnumerator WaitForStableFrame(int frameCount)
+    {
+        for (int i = 0; i < frameCount; i++)
+        {
+            // 画面描画終了まで待機する
+            yield return new WaitForEndOfFrame();
+        }
     }
 }
