@@ -154,10 +154,10 @@ cython_debug/
 ehthumbs.db
 Thumbs.db
 
-#env
-.venv-cpu/
-.venv-rocm/
-/convert_env/
+# Python virtual environments
+.venv-cpu*/
+.venv-rocm*/
+convert_env/
 
 # dataset
 /dataset/
