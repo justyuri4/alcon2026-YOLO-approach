@@ -1,5 +1,9 @@
 from pathlib import Path
-import argparse
+
+LABEL_ROOT = Path(
+    r"D:\Users\ideka\Downloads\alcon2026-YOLO-approach\dataset\labels"
+)
+CLASS_COUNT = 3
 
 
 def check_label_file(label_path: Path, class_count: int) -> list[str]:
@@ -8,7 +12,7 @@ def check_label_file(label_path: Path, class_count: int) -> list[str]:
     try:
         lines = label_path.read_text(encoding="utf-8").splitlines()
     except UnicodeDecodeError:
-        return ["UTF-8‚Å“Ç‚İ‚ß‚Ü‚¹‚ñ"]
+        return ["UTF-8ã§èª­ã¿è¾¼ã‚ã¾ã›ã‚“"]
 
     for line_number, line in enumerate(lines, start=1):
         if not line.strip():
@@ -18,13 +22,13 @@ def check_label_file(label_path: Path, class_count: int) -> list[str]:
 
         if len(values) < 7:
             errors.append(
-                f"{line_number}s–Ú: À•W‚ª•s‘«‚µ‚Ä‚¢‚Ü‚·i{len(values)}€–Új"
+                f"{line_number}è¡Œç›®: åº§æ¨™ãŒä¸è¶³ã—ã¦ã„ã¾ã™ï¼ˆ{len(values)}é …ç›®ï¼‰"
             )
             continue
 
         if (len(values) - 1) % 2 != 0:
             errors.append(
-                f"{line_number}s–Ú: À•W‚Ì”‚ª•s³‚Å‚·"
+                f"{line_number}è¡Œç›®: åº§æ¨™ã®æ•°ãŒä¸æ­£ã§ã™"
             )
             continue
 
@@ -32,12 +36,12 @@ def check_label_file(label_path: Path, class_count: int) -> list[str]:
             class_id = int(values[0])
             coordinates = [float(value) for value in values[1:]]
         except ValueError:
-            errors.append(f"{line_number}s–Ú: ”’l‚Æ‚µ‚Ä‰ğß‚Å‚«‚Ü‚¹‚ñ")
+            errors.append(f"{line_number}è¡Œç›®: æ•°å€¤ã¨ã—ã¦è§£é‡ˆã§ãã¾ã›ã‚“")
             continue
 
         if not 0 <= class_id < class_count:
             errors.append(
-                f"{line_number}s–Ú: class_id={class_id} ‚ª”ÍˆÍŠO‚Å‚·"
+                f"{line_number}è¡Œç›®: class_id={class_id} ãŒç¯„å›²å¤–ã§ã™"
             )
 
         invalid_coordinates = [
@@ -47,26 +51,31 @@ def check_label_file(label_path: Path, class_count: int) -> list[str]:
 
         if invalid_coordinates:
             errors.append(
-                f"{line_number}s–Ú: À•W‚ª0`1‚Ì”ÍˆÍŠO‚Å‚·"
+                f"{line_number}è¡Œç›®: åº§æ¨™ãŒ0ï½1ã®ç¯„å›²å¤–ã§ã™"
             )
 
     return errors
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--labels", required=True, help="ƒ‰ƒxƒ‹ƒtƒHƒ‹ƒ_[")
-    parser.add_argument("--classes", type=int, required=True, help="ƒNƒ‰ƒX”")
-    args = parser.parse_args()
+    label_root = LABEL_ROOT
+    class_count = CLASS_COUNT
 
-    label_root = Path(args.labels)
+    if not label_root.exists():
+        print(f"ãƒ©ãƒ™ãƒ«ãƒ•ã‚©ãƒ«ãƒ€ãƒ¼ãŒå­˜åœ¨ã—ã¾ã›ã‚“: {label_root}")
+        return
+
+    if not label_root.is_dir():
+        print(f"ãƒ©ãƒ™ãƒ«ãƒ•ã‚©ãƒ«ãƒ€ãƒ¼ã§ã¯ã‚ã‚Šã¾ã›ã‚“: {label_root}")
+        return
+
     label_files = sorted(label_root.rglob("*.txt"))
 
     valid_count = 0
     invalid_count = 0
 
     for label_path in label_files:
-        errors = check_label_file(label_path, args.classes)
+        errors = check_label_file(label_path, class_count)
 
         if errors:
             invalid_count += 1
@@ -76,10 +85,10 @@ def main() -> None:
         else:
             valid_count += 1
 
-    print("\nŒŸ¸Œ‹‰Ê")
-    print(f"³í: {valid_count}")
-    print(f"ˆÙí: {invalid_count}")
-    print(f"‡Œv: {len(label_files)}")
+    print("\næ¤œæŸ»çµæœ")
+    print(f"æ­£å¸¸: {valid_count}")
+    print(f"ç•°å¸¸: {invalid_count}")
+    print(f"åˆè¨ˆ: {len(label_files)}")
 
 
 if __name__ == "__main__":

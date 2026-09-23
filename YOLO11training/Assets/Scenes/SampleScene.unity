@@ -270,7 +270,7 @@ MonoBehaviour:
   ricePrefabs:
   - prefab: {fileID: 3153879773919659142, guid: 93cfd3cf3f634634a9e0e8bc7baa67f8, type: 3}
     height: 0.9
-  - prefab: {fileID: 800977281167158293, guid: 65525c48543c0441490df4d662658811, type: 3}
+  - prefab: {fileID: 800977281167158293, guid: 21d2a3ffb8bf3a848972c83e7a3e9612, type: 3}
     height: 0.6
   paddySoilTransform: {fileID: 0}
   rowSpacing: 0.3
@@ -922,6 +922,8 @@ MonoBehaviour:
   cameraHeightOffset: 1.5
   targetMinAngle: -30
   targetMaxAngle: 5
+  captureVolume: {fileID: 0}
+  disableMotionBlurForCapture: 1
 --- !u!4 &1105161134 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7231539152304568531, guid: 4667f131cd27c4334955735467d520b9, type: 3}
@@ -1004,6 +1006,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DatasetGeneratorManager
   searchOnlyInChildren: 0
   captureCount: 1000
+  framesBeforeCapture: 0
+  framesAfterCapture: 2
 --- !u!4 &1803885805
 Transform:
   m_ObjectHideFlags: 0

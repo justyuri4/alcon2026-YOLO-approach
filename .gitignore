@@ -157,6 +157,8 @@ Thumbs.db
 #env
 .venv-cpu/
 .venv-rocm/
+/convert_env/
 
 # dataset
 /dataset/
+/solo/

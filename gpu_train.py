@@ -4,29 +4,11 @@ from pathlib import Path
 os.environ.setdefault("MIOPEN_FIND_MODE", "FAST")
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-# ROCmの共有ライブラリをtorchのimport前に設定
-project_root = Path(__file__).resolve().parent
-venv_root = Path(os.environ.get("VIRTUAL_ENV", ""))
-
-rocm_library_paths = [
-    venv_root / "lib/python3.10/site-packages/_rocm_sdk_core/lib",
-    Path("/usr/lib/wsl/lib"),
-]
-
-library_paths = [
-    str(path)
-    for path in rocm_library_paths
-    if path.exists()
-]
-
-if library_paths:
-    current_library_path = os.environ.get("LD_LIBRARY_PATH", "")
-    os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(
-        library_paths + ([current_library_path] if current_library_path else [])
-    )
-
 import torch
 from ultralytics import YOLO
+
+
+project_root = Path(__file__).resolve().parent
 
 
 def check_rocm_gpu() -> None:
@@ -41,7 +23,7 @@ def check_rocm_gpu() -> None:
 
     gpu_name = torch.cuda.get_device_name(0)
     print(f"GPU: {gpu_name}")
-    print("ROCm GPUを使用して学習します")
+    print("ROCm GPUを使用します")
 
 
 def main() -> None:
@@ -51,19 +33,29 @@ def main() -> None:
     model_path = project_root / "yolo26n-seg.pt"
 
     if not data_yaml_path.exists():
-        raise FileNotFoundError(f"データセット設定が見つかりません: {data_yaml_path}")
+        raise FileNotFoundError(
+            f"データセット設定が見つかりません: {data_yaml_path}"
+        )
+
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"モデルファイルが見つかりません: {model_path}"
+        )
 
     model = YOLO(str(model_path))
 
     results = model.train(
         data=str(data_yaml_path),
-        epochs=300,
-        imgsz=640,
-        batch=30,
+        epochs=50,
+        imgsz=1024,
+        batch=8,
         device=0,
-        workers=6,
+        workers=8,
         cache="ram",
         amp=True,
+        max_det=600,
+        degrees=15.0,
+        fliplr=0.5,
         project=str(project_root / "runs/segment"),
         name="finetune_yolo26_rocm",
         exist_ok=True,

@@ -15,7 +15,7 @@ def main():
     results = model.train(
         data=str(data_yaml_path),
         epochs=300,
-        imgsz=640,
+        imgsz=1024,
         batch=2,
         device="cpu",
         workers=0,
