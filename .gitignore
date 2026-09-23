@@ -157,3 +157,6 @@ Thumbs.db
 #env
 .venv-cpu/
 .venv-rocm/
+
+# dataset
+/dataset/
