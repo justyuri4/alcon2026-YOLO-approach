@@ -1,3 +1,8 @@
+# Environment: WSL2 + AMD Radeon RX 9060 XT (gfx1200)
+# ROCm: 7.2
+# PyTorch requires the system HSA runtime:
+# source "$VIRTUAL_ENV/rocm7.2.env"
+--extra-index-url https://download.pytorch.org/whl/rocm7.2
 certifi==2026.7.22
 charset-normalizer==3.5.1
 cloudpickle==3.1.2
@@ -28,11 +33,17 @@ PyYAML==6.0.3
 requests==2.34.2
 six==1.17.0
 sympy==1.14.0
-torch==2.9.1+rocm6.4
-torchaudio==2.9.1+rocm6.4
-torchvision==0.24.1+rocm6.4
+torch==2.14.0+rocm7.2
+torchvision==0.29.0+rocm7.2
 tqdm==4.70.1
+triton-rocm==3.8.0
 typing_extensions==4.16.0
 ultralytics==8.4.159
 ultralytics-thop==2.1.6
 urllib3==2.8.0
+
+# Runtime configuration for WSL2 + AMD Radeon RX 9060 XT (gfx1200)
+# The virtual environment's activate script sets this automatically.
+# LD_PRELOAD=/opt/rocm-7.2.0/lib/libhsa-runtime64.so.1
+# ROCm version: 7.2
+# PyTorch: 2.14.0+rocm7.2

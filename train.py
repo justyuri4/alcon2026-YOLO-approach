@@ -14,14 +14,26 @@ def main():
 
     results = model.train(
         data=str(data_yaml_path),
-        epochs=300,
-        imgsz=1024,
-        batch=2,
-        device="cpu",
-        workers=0,
-        amp=False,
-        project="runs/segment",
-        name="finetune_yolo26_seg",
+        epochs=100,
+        imgsz=800,
+        batch=10,
+        device=0,
+        workers=24,
+        cache="ram",
+        amp=True,
+        max_det=500,
+        degrees=15.0,
+        fliplr=0.5,
+        mosaic=1.0,       # Mosaicを常時有効化
+        close_mosaic=15,  # 最後の10エポックは無効化
+        cos_lr=True,
+        lr0=0.01,
+        lrf=0.01,
+        warmup_epochs=5.0,
+        cls=2.5,
+        box=10.0,
+        project=str(project_root / "runs/segment"),
+        name="finetune_yolo26_rocm",
         exist_ok=True,
     )
 

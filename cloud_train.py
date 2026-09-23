@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 
+#環境有効コマンド cd /mnt/d/Users/ideka/Downloads/alcon2026-YOLO-approach source convert_env/bin/activate
+
+
 # CUDA / PyTorch の高速化設定
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 os.environ.setdefault("CUDA_DEVICE_ORDER", "PCI_BUS_ID")

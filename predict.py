@@ -1,6 +1,7 @@
 import csv
 import os
-from pathlib import Path    
+import sys
+from pathlib import Path
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -8,7 +9,11 @@ from ultralytics import YOLO
 # ==========================================
 # 設定
 # ==========================================
-PROJECT_ROOT = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent
+
 INPUT_CSV = PROJECT_ROOT / "input.csv"
 OUTPUT_CSV = PROJECT_ROOT / "output.csv"
 
