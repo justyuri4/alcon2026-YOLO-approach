@@ -162,3 +162,4 @@ convert_env/
 # dataset
 /dataset/
 /solo/
+/convert_env_wheel
